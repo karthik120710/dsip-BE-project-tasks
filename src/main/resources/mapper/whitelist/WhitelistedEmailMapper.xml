@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dsip.backend.whitelist.WhitelistedEmailMapper">
+
+    <!-- Result Map -->
+    <resultMap id="WhitelistedEmailResultMap" type="com.dsip.backend.whitelist.WhitelistedEmail">
+        <id property="id" column="id"/>
+        <result property="email" column="email"/>
+        <result property="addedBy" column="added_by"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <!-- SQL Fragments -->
+    <sql id="whitelistedEmailColumns">
+        id, email, added_by, created_at
+    </sql>
+
+    <!-- Select Queries -->
+    <select id="findById" resultMap="WhitelistedEmailResultMap">
+        SELECT
+        <include refid="whitelistedEmailColumns"/>
+        FROM whitelisted_emails
+        WHERE id = #{id}
+    </select>
+
+    <select id="findByEmail" resultMap="WhitelistedEmailResultMap">
+        SELECT
+        <include refid="whitelistedEmailColumns"/>
+        FROM whitelisted_emails
+        WHERE email = #{email}
+    </select>
+
+    <select id="existsByEmail" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1 FROM whitelisted_emails WHERE email = #{email}
+        )
+    </select>
+
+    <select id="findAll" resultMap="WhitelistedEmailResultMap">
+        SELECT
+        <include refid="whitelistedEmailColumns"/>
+        FROM whitelisted_emails
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- Insert Query -->
+    <insert id="insert" parameterType="com.dsip.backend.whitelist.WhitelistedEmail">
+        <selectKey keyProperty="id" resultType="java.util.UUID" order="BEFORE">
+            SELECT COALESCE(#{id}, gen_random_uuid())
+        </selectKey>
+        INSERT INTO whitelisted_emails (id, email, added_by, created_at)
+        VALUES (
+            #{id},
+            #{email},
+            #{addedBy},
+            COALESCE(#{createdAt}, NOW())
+        )
+    </insert>
+
+    <!-- Update Query -->
+    <update id="update" parameterType="com.dsip.backend.whitelist.WhitelistedEmail">
+        UPDATE whitelisted_emails
+        SET email = #{email},
+            added_by = #{addedBy}
+        WHERE id = #{id}
+    </update>
+
+    <!-- Delete Queries -->
+    <delete id="deleteById">
+        DELETE FROM whitelisted_emails WHERE id = #{id}
+    </delete>
+
+    <delete id="deleteByEmail">
+        DELETE FROM whitelisted_emails WHERE email = #{email}
+    </delete>
+
+</mapper>

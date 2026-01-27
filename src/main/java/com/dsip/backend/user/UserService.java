@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.Optional;
 
 @Service
@@ -12,35 +13,38 @@ import java.util.Optional;
 @Slf4j
 public class UserService {
 
-    private final UserRepository userRepository;
+    private final UserMapper userMapper;
 
     @Transactional(readOnly = true)
     public Optional<User> findByEmail(String email) {
-        return userRepository.findByEmail(email);
+        return userMapper.findByEmail(email);
     }
 
     @Transactional
     public User createOrUpdateUser(String email, String name, String profilePicture) {
-        return userRepository.findByEmail(email)
+        return userMapper.findByEmail(email)
                 .map(existingUser -> {
                     existingUser.setName(name);
                     existingUser.setProfilePicture(profilePicture);
+                    userMapper.update(existingUser);
                     log.info("Updated existing user: {}", email);
-                    return userRepository.save(existingUser);
+                    return existingUser;
                 })
                 .orElseGet(() -> {
                     User newUser = User.builder()
                             .email(email)
                             .name(name)
                             .profilePicture(profilePicture)
+                            .createdAt(Instant.now())
                             .build();
+                    userMapper.insert(newUser);
                     log.info("Created new user: {}", email);
-                    return userRepository.save(newUser);
+                    return newUser;
                 });
     }
 
     @Transactional(readOnly = true)
     public boolean existsByEmail(String email) {
-        return userRepository.existsByEmail(email);
+        return userMapper.existsByEmail(email);
     }
 }

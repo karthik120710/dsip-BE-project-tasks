@@ -22,14 +22,16 @@ spring:
       maximum-pool-size: ${DB_POOL_SIZE:10}
       minimum-idle: ${DB_POOL_MIN_IDLE:5}
 
-  jpa:
-    hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:validate}
-    show-sql: ${JPA_SHOW_SQL:false}
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
+# MyBatis Configuration
+mybatis:
+  mapper-locations: classpath:mapper/**/*.xml
+  type-aliases-package: com.dsip.backend
+  type-handlers-package: com.dsip.backend.config
+  configuration:
+    map-underscore-to-camel-case: true
+    default-fetch-size: 100
+    default-statement-timeout: 30
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
 
   session:
     store-type: jdbc

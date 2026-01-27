@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -13,37 +14,39 @@ import java.util.Optional;
 @Slf4j
 public class WhitelistService {
 
-    private final WhitelistedEmailRepository whitelistedEmailRepository;
+    private final WhitelistedEmailMapper whitelistedEmailMapper;
 
     @Transactional(readOnly = true)
     public boolean isEmailWhitelisted(String email) {
-        boolean whitelisted = whitelistedEmailRepository.existsByEmail(email.toLowerCase());
+        boolean whitelisted = whitelistedEmailMapper.existsByEmail(email.toLowerCase());
         log.debug("Email whitelist check for {}: {}", email, whitelisted);
         return whitelisted;
     }
 
     @Transactional(readOnly = true)
     public List<WhitelistedEmail> getAllWhitelistedEmails() {
-        return whitelistedEmailRepository.findAll();
+        return whitelistedEmailMapper.findAll();
     }
 
     @Transactional(readOnly = true)
     public Optional<WhitelistedEmail> findByEmail(String email) {
-        return whitelistedEmailRepository.findByEmail(email.toLowerCase());
+        return whitelistedEmailMapper.findByEmail(email.toLowerCase());
     }
 
     @Transactional
     public WhitelistedEmail addEmail(String email, String addedBy) {
         String normalizedEmail = email.toLowerCase();
 
-        return whitelistedEmailRepository.findByEmail(normalizedEmail)
+        return whitelistedEmailMapper.findByEmail(normalizedEmail)
                 .orElseGet(() -> {
                     WhitelistedEmail whitelistedEmail = WhitelistedEmail.builder()
                             .email(normalizedEmail)
                             .addedBy(addedBy)
+                            .createdAt(Instant.now())
                             .build();
+                    whitelistedEmailMapper.insert(whitelistedEmail);
                     log.info("Added email to whitelist: {} by {}", normalizedEmail, addedBy);
-                    return whitelistedEmailRepository.save(whitelistedEmail);
+                    return whitelistedEmail;
                 });
     }
 
@@ -51,8 +54,8 @@ public class WhitelistService {
     public boolean removeEmail(String email) {
         String normalizedEmail = email.toLowerCase();
 
-        if (whitelistedEmailRepository.existsByEmail(normalizedEmail)) {
-            whitelistedEmailRepository.deleteByEmail(normalizedEmail);
+        if (whitelistedEmailMapper.existsByEmail(normalizedEmail)) {
+            whitelistedEmailMapper.deleteByEmail(normalizedEmail);
             log.info("Removed email from whitelist: {}", normalizedEmail);
             return true;
         }
