@@ -1,6 +1,9 @@
-package com.dsip.backend.user;
+package com.dsip.backend.controller;
 
-import com.dsip.backend.auth.SessionService;
+import com.dsip.backend.service.SessionService;
+import com.dsip.backend.service.UserService;
+import com.dsip.backend.entity.User;
+import com.dsip.backend.dto.UserDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;

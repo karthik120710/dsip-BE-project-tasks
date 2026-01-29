@@ -1,5 +1,6 @@
-package com.dsip.backend.user;
+package com.dsip.backend.dto;
 
+import com.dsip.backend.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

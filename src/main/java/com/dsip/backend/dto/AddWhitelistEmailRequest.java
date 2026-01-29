@@ -1,4 +1,4 @@
-package com.dsip.backend.admin;
+package com.dsip.backend.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

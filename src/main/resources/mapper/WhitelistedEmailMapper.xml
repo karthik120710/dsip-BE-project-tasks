@@ -2,10 +2,10 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.dsip.backend.whitelist.WhitelistedEmailMapper">
+<mapper namespace="com.dsip.backend.mapper.WhitelistedEmailMapper">
 
     <!-- Result Map -->
-    <resultMap id="WhitelistedEmailResultMap" type="com.dsip.backend.whitelist.WhitelistedEmail">
+    <resultMap id="WhitelistedEmailResultMap" type="com.dsip.backend.entity.WhitelistedEmail">
         <id property="id" column="id"/>
         <result property="email" column="email"/>
         <result property="addedBy" column="added_by"/>
@@ -46,21 +46,24 @@
     </select>
 
     <!-- Insert Query -->
-    <insert id="insert" parameterType="com.dsip.backend.whitelist.WhitelistedEmail">
+    <insert id="insert" parameterType="com.dsip.backend.entity.WhitelistedEmail">
         <selectKey keyProperty="id" resultType="java.util.UUID" order="BEFORE">
-            SELECT COALESCE(#{id}, gen_random_uuid())
+            SELECT CASE
+                WHEN #{id} IS NULL THEN gen_random_uuid()
+                ELSE #{id}::uuid
+            END
         </selectKey>
         INSERT INTO whitelisted_emails (id, email, added_by, created_at)
         VALUES (
             #{id},
             #{email},
             #{addedBy},
-            COALESCE(#{createdAt}, NOW())
+            COALESCE(#{createdAt}, CURRENT_TIMESTAMP)
         )
     </insert>
 
     <!-- Update Query -->
-    <update id="update" parameterType="com.dsip.backend.whitelist.WhitelistedEmail">
+    <update id="update" parameterType="com.dsip.backend.entity.WhitelistedEmail">
         UPDATE whitelisted_emails
         SET email = #{email},
             added_by = #{addedBy}

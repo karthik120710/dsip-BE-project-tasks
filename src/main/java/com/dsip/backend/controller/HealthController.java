@@ -1,4 +1,4 @@
-package com.dsip.backend;
+package com.dsip.backend.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

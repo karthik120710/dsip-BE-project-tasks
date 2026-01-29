@@ -1,7 +1,9 @@
-package com.dsip.backend.admin;
+package com.dsip.backend.controller;
 
-import com.dsip.backend.whitelist.WhitelistService;
-import com.dsip.backend.whitelist.WhitelistedEmail;
+import com.dsip.backend.service.WhitelistService;
+import com.dsip.backend.entity.WhitelistedEmail;
+import com.dsip.backend.dto.WhitelistDto;
+import com.dsip.backend.dto.AddWhitelistEmailRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

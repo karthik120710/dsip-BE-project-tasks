@@ -1,6 +1,6 @@
-package com.dsip.backend.admin;
+package com.dsip.backend.dto;
 
-import com.dsip.backend.whitelist.WhitelistedEmail;
+import com.dsip.backend.entity.WhitelistedEmail;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

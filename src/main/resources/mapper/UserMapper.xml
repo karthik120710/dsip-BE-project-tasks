@@ -2,10 +2,10 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.dsip.backend.user.UserMapper">
+<mapper namespace="com.dsip.backend.mapper.UserMapper">
 
     <!-- Result Map -->
-    <resultMap id="UserResultMap" type="com.dsip.backend.user.User">
+    <resultMap id="UserResultMap" type="com.dsip.backend.entity.User">
         <id property="id" column="id"/>
         <result property="email" column="email"/>
         <result property="name" column="name"/>
@@ -47,9 +47,12 @@
     </select>
 
     <!-- Insert Query -->
-    <insert id="insert" parameterType="com.dsip.backend.user.User">
+    <insert id="insert" parameterType="com.dsip.backend.entity.User">
         <selectKey keyProperty="id" resultType="java.util.UUID" order="BEFORE">
-            SELECT COALESCE(#{id}, gen_random_uuid())
+            SELECT CASE
+                WHEN #{id} IS NULL THEN gen_random_uuid()
+                ELSE #{id}::uuid
+            END
         </selectKey>
         INSERT INTO users (id, email, name, profile_picture, created_at)
         VALUES (
@@ -57,12 +60,12 @@
             #{email},
             #{name},
             #{profilePicture},
-            COALESCE(#{createdAt}, NOW())
+            COALESCE(#{createdAt}, CURRENT_TIMESTAMP)
         )
     </insert>
 
     <!-- Update Query -->
-    <update id="update" parameterType="com.dsip.backend.user.User">
+    <update id="update" parameterType="com.dsip.backend.entity.User">
         UPDATE users
         SET email = #{email},
             name = #{name},

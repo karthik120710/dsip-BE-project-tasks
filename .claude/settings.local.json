@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./mvnw clean:*)",
+      "Bash(mvnw.cmd clean:*)",
+      "Bash(cmd.exe /c \"mvnw.cmd clean compile\")",
+      "Bash(docker --version:*)",
+      "Bash(test:*)",
+      "Bash(docker compose:*)",
+      "Bash(ls:*)",
+      "Bash(java:*)",
+      "Bash(export JAVA_HOME=\"C:/Program Files/Java/jdk-24\")",
+      "Bash(bash mvnw clean compile:*)",
+      "Bash(powershell.exe -Command \"cd D:\\\\projects\\\\DSIP-Backend; .\\\\mvnw.cmd clean compile -DskipTests\")",
+      "Bash(curl:*)",
+      "Bash(powershell.exe:*)",
+      "Bash(unzip:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)"
+    ]
+  }
+}

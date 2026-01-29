@@ -1,7 +1,7 @@
-package com.dsip.backend.auth;
+package com.dsip.backend.controller;
 
-import com.dsip.backend.user.UserDto;
-import com.dsip.backend.user.UserService;
+import com.dsip.backend.dto.UserDto;
+import com.dsip.backend.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

@@ -1,8 +1,8 @@
 package com.dsip.backend.auth;
 
 import com.dsip.backend.config.AppProperties;
-import com.dsip.backend.user.UserService;
-import com.dsip.backend.whitelist.WhitelistService;
+import com.dsip.backend.service.UserService;
+import com.dsip.backend.service.WhitelistService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

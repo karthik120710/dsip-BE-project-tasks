@@ -10,6 +10,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
 
+/**
+ * Custom MyBatis type handler for PostgreSQL UUID type.
+ * Handles conversion between Java UUID and PostgreSQL UUID.
+ */
 @MappedTypes(UUID.class)
 public class UUIDTypeHandler extends BaseTypeHandler<UUID> {
 
@@ -20,19 +24,37 @@ public class UUIDTypeHandler extends BaseTypeHandler<UUID> {
 
     @Override
     public UUID getNullableResult(ResultSet rs, String columnName) throws SQLException {
-        Object value = rs.getObject(columnName);
-        return value != null ? (UUID) value : null;
+        return toUUID(rs.getObject(columnName));
     }
 
     @Override
     public UUID getNullableResult(ResultSet rs, int columnIndex) throws SQLException {
-        Object value = rs.getObject(columnIndex);
-        return value != null ? (UUID) value : null;
+        return toUUID(rs.getObject(columnIndex));
     }
 
     @Override
     public UUID getNullableResult(CallableStatement cs, int columnIndex) throws SQLException {
-        Object value = cs.getObject(columnIndex);
-        return value != null ? (UUID) value : null;
+        return toUUID(cs.getObject(columnIndex));
+    }
+
+    /**
+     * Converts database object to UUID.
+     * Handles both UUID objects and String representations.
+     */
+    private UUID toUUID(Object value) throws SQLException {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof UUID) {
+            return (UUID) value;
+        }
+        if (value instanceof String) {
+            try {
+                return UUID.fromString((String) value);
+            } catch (IllegalArgumentException e) {
+                throw new SQLException("Invalid UUID string: " + value, e);
+            }
+        }
+        throw new SQLException("Cannot convert " + value.getClass().getName() + " to UUID");
     }
 }
