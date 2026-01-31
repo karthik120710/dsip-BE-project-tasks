@@ -3,6 +3,7 @@ package com.dsip.backend.config;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
 
 @Configuration
 @ConfigurationProperties(prefix = "app")
@@ -15,9 +16,14 @@ public class AppProperties {
 
     @Data
     public static class OAuth2Properties {
-        private String successRedirectUrl = "http://localhost:3000";
-        private String failureRedirectUrl = "http://localhost:3000/auth/error";
-        private String whitelistFailureRedirectUrl = "http://localhost:3000/auth/unauthorized";
+      @Value("${app.oauth2.success-redirect-url}")
+      private String successRedirectUrl;
+
+      @Value("${app.oauth2.failure-redirect-url}")
+      private String failureRedirectUrl;
+
+      @Value("${app.oauth2.whitelist-failure-redirect-url}")
+      private String whitelistFailureRedirectUrl;
     }
 
     @Data
