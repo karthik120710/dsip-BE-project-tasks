@@ -13,6 +13,8 @@ public class AppProperties {
     private OAuth2Properties oauth2 = new OAuth2Properties();
     private SessionProperties session = new SessionProperties();
     private CorsProperties cors = new CorsProperties();
+    private FinnhubProperties finnhub = new FinnhubProperties();
+    private UpstoxProperties upstox = new UpstoxProperties();
 
     @Data
     public static class OAuth2Properties {
@@ -35,5 +37,17 @@ public class AppProperties {
     @Data
     public static class CorsProperties {
         private String allowedOrigins = "http://localhost:3000";
+    }
+
+    @Data
+    public static class FinnhubProperties {
+        @Value("${app.finnhub.api-key}")
+        private String apiKey;
+    }
+
+    @Data
+    public static class UpstoxProperties {
+        @Value("${app.upstox.access-token}")
+        private String accessToken;
     }
 }

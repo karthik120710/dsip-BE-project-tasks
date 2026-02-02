@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dsip.backend.mapper.StockMapper">
+
+    <!-- Result Map -->
+    <resultMap id="StockResultMap" type="com.dsip.backend.entity.Stock">
+        <id property="id" column="id"/>
+        <result property="stockSymbol" column="stock_symbol"/>
+        <result property="stockName" column="stock_name"/>
+        <result property="listedExchange" column="listed_exchange"/>
+        <result property="lastDateMarketClosingPrice" column="last_date_market_closing_price"/>
+        <result property="lastUpdatedDate" column="last_updated_date"/>
+    </resultMap>
+
+    <!-- SQL Fragments -->
+    <sql id="stockColumns">
+        id, stock_symbol, stock_name, listed_exchange, last_date_market_closing_price, last_updated_date
+    </sql>
+
+    <!-- Select Queries -->
+    <select id="findByStockSymbol" resultMap="StockResultMap">
+        SELECT
+        <include refid="stockColumns"/>
+        FROM stocks
+        WHERE stock_symbol = #{stockSymbol}
+    </select>
+
+    <select id="existsByStockSymbol" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1 FROM stocks WHERE stock_symbol = #{stockSymbol}
+        )
+    </select>
+
+    <!-- Insert Query -->
+    <insert id="insert" parameterType="com.dsip.backend.entity.Stock" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO stocks (stock_symbol, stock_name, listed_exchange, last_date_market_closing_price, last_updated_date)
+        VALUES (
+            #{stockSymbol},
+            #{stockName},
+            #{listedExchange},
+            #{lastDateMarketClosingPrice},
+            #{lastUpdatedDate}
+        )
+    </insert>
+
+    <!-- Update Query -->
+    <update id="update" parameterType="com.dsip.backend.entity.Stock">
+        UPDATE stocks
+        SET stock_name = #{stockName},
+            listed_exchange = #{listedExchange},
+            last_date_market_closing_price = #{lastDateMarketClosingPrice},
+            last_updated_date = #{lastUpdatedDate}
+        WHERE stock_symbol = #{stockSymbol}
+    </update>
+
+    <!-- Delete Query -->
+    <delete id="deleteByStockSymbol">
+        DELETE FROM stocks WHERE stock_symbol = #{stockSymbol}
+    </delete>
+
+</mapper>
