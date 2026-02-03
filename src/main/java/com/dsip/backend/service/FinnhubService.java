@@ -2,6 +2,7 @@ package com.dsip.backend.service;
 
 import com.dsip.backend.config.AppProperties;
 import com.dsip.backend.dto.CompanyDetails;
+import com.dsip.backend.exception.StockPriceFetchException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -9,8 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.LocalDate;
-import java.time.ZoneId;
 
 /**
  * Service for fetching US stock data from Finnhub API.
@@ -26,46 +25,38 @@ public class FinnhubService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
-     * Fetches the closing price for a US stock on a specific date.
-     * Uses Finnhub's stock candles endpoint (daily resolution).
+     * Fetches the current/previous close price for a US stock.
+     * Uses Finnhub's quote endpoint (available on free tier).
      *
      * @param symbol stock symbol (e.g., "AAPL")
-     * @param date the date to fetch closing price for
      * @return closing price, or null if not available
      */
-    public Double fetchClosingPrice(String symbol, LocalDate date) {
+    public Double fetchClosingPrice(String symbol) {
         try {
-            log.info("Fetching closing price from Finnhub API for symbol: {}, date: {}", symbol, date);
-
-            // Convert LocalDate to UNIX timestamps (start and end of day)
-            long fromTimestamp = date.atStartOfDay(ZoneId.systemDefault()).toEpochSecond();
-            long toTimestamp = date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toEpochSecond();
+            log.info("Fetching quote from Finnhub API for symbol: {}", symbol);
 
             String apiKey = appProperties.getFinnhub().getApiKey();
             String url = String.format(
-                    "https://finnhub.io/api/v1/stock/candle?symbol=%s&resolution=D&from=%d&to=%d&token=%s",
-                    symbol, fromTimestamp, toTimestamp, apiKey
+                    "https://finnhub.io/api/v1/quote?symbol=%s&token=%s",
+                    symbol, apiKey
             );
 
             String response = restTemplate.getForObject(url, String.class);
             JsonNode root = objectMapper.readTree(response);
 
-            // Check if data is available
-            if (root.has("s") && "ok".equals(root.get("s").asText())) {
-                JsonNode closePrices = root.get("c");
-                if (closePrices != null && closePrices.isArray() && closePrices.size() > 0) {
-                    double closePrice = closePrices.get(0).asDouble();
-                    log.info("Successfully fetched closing price: {} for {}", closePrice, symbol);
-                    return closePrice;
-                }
+            // "pc" = previous close price, "c" = current price
+            if (root.has("pc") && root.get("pc").asDouble() > 0) {
+                double closePrice = root.get("pc").asDouble();
+                log.info("Successfully fetched previous close price: {} for {}", closePrice, symbol);
+                return closePrice;
             }
 
-            log.warn("No closing price data available for {} on {}", symbol, date);
+            log.warn("No quote data available for {}", symbol);
             return null;
 
         } catch (Exception e) {
             log.error("Error fetching data from Finnhub API for symbol: {}", symbol, e);
-            throw new RuntimeException("Failed to fetch data from Finnhub: " + e.getMessage(), e);
+            throw new StockPriceFetchException(symbol, "Finnhub API error: " + e.getMessage(), e);
         }
     }
 

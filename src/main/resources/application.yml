@@ -23,16 +23,6 @@ spring:
       minimum-idle: ${DB_POOL_MIN_IDLE:5}
 
 # MyBatis Configuration
-mybatis:
-  mapper-locations: classpath:mapper/**/*.xml
-  type-aliases-package: com.dsip.backend
-  type-handlers-package: com.dsip.backend.config
-  configuration:
-    map-underscore-to-camel-case: true
-    default-fetch-size: 100
-    default-statement-timeout: 30
-    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
-
   session:
     store-type: jdbc
     jdbc:
@@ -58,6 +48,16 @@ mybatis:
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
             user-name-attribute: sub
 
+mybatis:
+  mapper-locations: classpath:mapper/**/*.xml
+  type-aliases-package: com.dsip.backend
+  type-handlers-package: com.dsip.backend.config
+  configuration:
+    map-underscore-to-camel-case: true
+    default-fetch-size: 100
+    default-statement-timeout: 30
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
 # Application-specific configuration
 app:
   oauth2:
@@ -78,6 +78,9 @@ app:
 
   upstox:
     access-token: ${UPSTOX_ACCESS_TOKEN:your-upstox-access-token}
+
+  admin:
+    api-key: ${ADMIN_API_KEY}
 
 logging:
   level:

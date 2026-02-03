@@ -11,6 +11,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -28,6 +29,7 @@ public class SecurityConfig {
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
     private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
     private final AppProperties appProperties;
+    private final AdminApiKeyFilter adminApiKeyFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -40,12 +42,16 @@ public class SecurityConfig {
                         // Public endpoints
                         .requestMatchers("/", "/error", "/health").permitAll()
                         .requestMatchers("/oauth2/**", "/login/**").permitAll()
-                        // Admin endpoints require authentication (additional checks in controller)
-                        .requestMatchers("/api/admin/**").authenticated()
+                        // Stock read endpoints are public
+                        .requestMatchers(HttpMethod.GET, "/api/stocks/**").permitAll()
+                        // Stock DELETE and admin endpoints are protected by AdminApiKeyFilter
+                        .requestMatchers(HttpMethod.DELETE, "/api/stocks/**").permitAll()
+                        .requestMatchers("/api/admin/**").permitAll()
                         // All other API endpoints require authentication
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().authenticated()
                 )
+                .addFilterBefore(adminApiKeyFilter, UsernamePasswordAuthenticationFilter.class)
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(oAuth2AuthenticationSuccessHandler)
                         .failureHandler(oAuth2AuthenticationFailureHandler)

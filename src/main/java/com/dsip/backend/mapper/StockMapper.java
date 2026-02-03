@@ -4,6 +4,7 @@ import com.dsip.backend.entity.Stock;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.LocalDate;
 import java.util.Optional;
 
 /**
@@ -21,6 +22,12 @@ public interface StockMapper {
      * @return Optional containing the stock if found, empty otherwise
      */
     Optional<Stock> findByStockSymbol(@Param("stockSymbol") String stockSymbol);
+
+    /**
+     * Finds a stock by symbol where last_updated_date falls on the given UTC date.
+     */
+    Optional<Stock> findByStockSymbolAndDate(@Param("stockSymbol") String stockSymbol,
+                                              @Param("utcDate") LocalDate utcDate);
 
     /**
      * Checks if a stock exists by its symbol.

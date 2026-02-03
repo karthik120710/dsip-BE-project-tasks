@@ -41,3 +41,17 @@ CREATE TABLE IF NOT EXISTS whitelisted_emails (
 );
 
 CREATE INDEX IF NOT EXISTS idx_whitelisted_emails_email ON whitelisted_emails (email);
+
+-- Stocks table for caching daily closing stock prices
+CREATE TABLE IF NOT EXISTS stocks (
+    id BIGSERIAL PRIMARY KEY,
+    stock_symbol VARCHAR(50) NOT NULL UNIQUE,
+    stock_name VARCHAR(255),
+    listed_exchange VARCHAR(10) NOT NULL CHECK (listed_exchange IN ('US', 'NSE', 'BSE')),
+    last_date_market_closing_price DOUBLE PRECISION,
+    last_updated_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    CONSTRAINT stocks_symbol_unique UNIQUE (stock_symbol)
+);
+
+CREATE INDEX IF NOT EXISTS idx_stocks_symbol ON stocks(stock_symbol);
+CREATE INDEX IF NOT EXISTS idx_stocks_exchange ON stocks(listed_exchange);

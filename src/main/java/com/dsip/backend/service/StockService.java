@@ -4,22 +4,18 @@ import com.dsip.backend.dto.CompanyDetails;
 import com.dsip.backend.dto.StockPriceResponse;
 import com.dsip.backend.entity.Exchange;
 import com.dsip.backend.entity.Stock;
+import com.dsip.backend.exception.StockPriceFetchException;
 import com.dsip.backend.mapper.StockMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.Optional;
 
-/**
- * Orchestrator service for stock price retrieval.
- * Implements DB-first caching strategy:
- * 1. Check if stock exists in DB
- * 2. If YES → return from DB (no API call)
- * 3. If NO → fetch from external API, store in DB, return response
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -29,107 +25,96 @@ public class StockService {
     private final FinnhubService finnhubService;
     private final UpstoxService upstoxService;
 
-    /**
-     * CORE METHOD: Fetches closing price for a stock on a given date.
-     * ALWAYS checks DB first. External API is called ONLY if stock is not in cache.
-     *
-     * @param symbol stock symbol (e.g., "AAPL", "RELIANCE")
-     * @param exchange exchange (US, NSE, or BSE)
-     * @param date date to fetch closing price for
-     * @return StockPriceResponse with price, source, and company details
-     */
     @Transactional
-    public StockPriceResponse getClosingPrice(String symbol, Exchange exchange, LocalDate date) {
-        log.info("Request received for stock: {}, exchange: {}, date: {}", symbol, exchange, date);
+    public StockPriceResponse getClosingPrice(String symbol, Exchange exchange) {
+        LocalDate todayUtc = LocalDate.now(ZoneOffset.UTC);
+        log.info("Request received for stock: {}, exchange: {}, todayUTC: {}", symbol, exchange, todayUtc);
 
-        // STEP 1: Check DB cache by stock symbol
-        Optional<Stock> cachedStock = stockMapper.findByStockSymbol(symbol);
+        // Check DB cache by symbol AND today's UTC date
+        Optional<Stock> cachedStock = stockMapper.findByStockSymbolAndDate(symbol, todayUtc);
 
         if (cachedStock.isPresent()) {
-            // CACHE HIT: Return data from DB without calling external API
-            log.info("✓ CACHE HIT: Stock {} found in DB. Skipping external API call.", symbol);
+            log.info("CACHE HIT: Stock {} found in DB for today (UTC). Skipping external API call.", symbol);
             Stock stock = cachedStock.get();
 
-            // Build company details from cached data
             CompanyDetails companyDetails = CompanyDetails.builder()
                     .name(stock.getStockName())
                     .symbol(stock.getStockSymbol())
                     .exchange(stock.getListedExchange().name())
-                    .industry("N/A") // Not stored in DB for simplicity
+                    .industry("N/A")
                     .country(stock.getListedExchange() == Exchange.US ? "US" : "India")
                     .build();
 
             return StockPriceResponse.builder()
                     .symbol(stock.getStockSymbol())
                     .exchange(stock.getListedExchange().name())
-                    .date(stock.getLastUpdatedDate().toString())
+                    .date(todayUtc.toString())
                     .closePrice(stock.getLastDateMarketClosingPrice())
-                    .source("DB") // Data from database cache
+                    .source("DB")
                     .company(companyDetails)
                     .build();
         }
 
-        // CACHE MISS: Stock not in DB, fetch from external API
-        log.info("✗ CACHE MISS: Stock {} not found in DB. Calling external API...", symbol);
+        // CACHE MISS: stock not in DB for today
+        log.info("CACHE MISS: Stock {} not found for today. Calling external API...", symbol);
 
         Double closePrice;
         CompanyDetails companyDetails;
 
         if (exchange == Exchange.US) {
-            // Fetch from Finnhub API
-            closePrice = finnhubService.fetchClosingPrice(symbol, date);
+            closePrice = finnhubService.fetchClosingPrice(symbol);
             companyDetails = finnhubService.fetchCompanyDetails(symbol);
         } else {
-            // Fetch from Upstox API (NSE or BSE)
-            closePrice = upstoxService.fetchClosingPrice(symbol, exchange.name(), date);
+            closePrice = upstoxService.fetchClosingPrice(symbol, exchange.name());
             companyDetails = upstoxService.fetchCompanyDetails(symbol, exchange.name());
         }
 
         if (closePrice == null) {
             log.error("Failed to fetch closing price from API for symbol: {}", symbol);
-            throw new RuntimeException("Unable to fetch closing price for " + symbol + " on " + date);
+            throw new StockPriceFetchException(symbol, "No price data returned from " + exchange + " market API");
         }
 
-        // STEP 2: Store fetched data in DB for future requests
-        Stock newStock = Stock.builder()
-                .stockSymbol(symbol)
-                .stockName(companyDetails.getName())
-                .listedExchange(exchange)
-                .lastDateMarketClosingPrice(closePrice)
-                .lastUpdatedDate(date)
-                .build();
+        Instant nowUtc = Instant.now();
 
-        stockMapper.insert(newStock);
-        log.info("✓ Stock {} saved to DB cache for future requests.", symbol);
+        // Check if stock exists in DB (stale entry) — update it; otherwise insert
+        Optional<Stock> existingStock = stockMapper.findByStockSymbol(symbol);
 
-        // STEP 3: Return response with API source
+        if (existingStock.isPresent()) {
+            Stock stock = existingStock.get();
+            stock.setStockName(companyDetails.getName());
+            stock.setListedExchange(exchange);
+            stock.setLastDateMarketClosingPrice(closePrice);
+            stock.setLastUpdatedDate(nowUtc);
+            stockMapper.update(stock);
+            log.info("Stock {} updated in DB cache.", symbol);
+        } else {
+            Stock newStock = Stock.builder()
+                    .stockSymbol(symbol)
+                    .stockName(companyDetails.getName())
+                    .listedExchange(exchange)
+                    .lastDateMarketClosingPrice(closePrice)
+                    .lastUpdatedDate(nowUtc)
+                    .build();
+            stockMapper.insert(newStock);
+            log.info("Stock {} saved to DB cache.", symbol);
+        }
+
         return StockPriceResponse.builder()
                 .symbol(symbol)
                 .exchange(exchange.name())
-                .date(date.toString())
+                .date(todayUtc.toString())
                 .closePrice(closePrice)
-                .source("API") // Data from external API
+                .source("API")
                 .company(companyDetails)
                 .build();
     }
 
-    /**
-     * Validates if a stock exists in the cache.
-     *
-     * @param symbol stock symbol
-     * @return true if stock exists in DB, false otherwise
-     */
     @Transactional(readOnly = true)
     public boolean isStockCached(String symbol) {
-        return stockMapper.existsByStockSymbol(symbol);
+        LocalDate todayUtc = LocalDate.now(ZoneOffset.UTC);
+        return stockMapper.findByStockSymbolAndDate(symbol, todayUtc).isPresent();
     }
 
-    /**
-     * Manually removes a stock from cache (for testing or cache invalidation).
-     *
-     * @param symbol stock symbol
-     * @return true if deleted, false if not found
-     */
     @Transactional
     public boolean removeFromCache(String symbol) {
         if (stockMapper.existsByStockSymbol(symbol)) {

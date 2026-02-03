@@ -49,10 +49,7 @@
     <!-- Insert Query -->
     <insert id="insert" parameterType="com.dsip.backend.entity.User">
         <selectKey keyProperty="id" resultType="java.util.UUID" order="BEFORE">
-            SELECT CASE
-                WHEN #{id} IS NULL THEN gen_random_uuid()
-                ELSE #{id}::uuid
-            END
+            SELECT COALESCE(CAST(#{id, jdbcType=VARCHAR} AS UUID), gen_random_uuid())
         </selectKey>
         INSERT INTO users (id, email, name, profile_picture, created_at)
         VALUES (

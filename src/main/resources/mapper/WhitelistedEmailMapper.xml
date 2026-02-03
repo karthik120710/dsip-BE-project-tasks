@@ -48,10 +48,7 @@
     <!-- Insert Query -->
     <insert id="insert" parameterType="com.dsip.backend.entity.WhitelistedEmail">
         <selectKey keyProperty="id" resultType="java.util.UUID" order="BEFORE">
-            SELECT CASE
-                WHEN #{id} IS NULL THEN gen_random_uuid()
-                ELSE #{id}::uuid
-            END
+            SELECT COALESCE(CAST(#{id, jdbcType=VARCHAR} AS UUID), gen_random_uuid())
         </selectKey>
         INSERT INTO whitelisted_emails (id, email, added_by, created_at)
         VALUES (

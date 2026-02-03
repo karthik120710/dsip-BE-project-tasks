@@ -15,6 +15,7 @@ public class AppProperties {
     private CorsProperties cors = new CorsProperties();
     private FinnhubProperties finnhub = new FinnhubProperties();
     private UpstoxProperties upstox = new UpstoxProperties();
+    private AdminProperties admin = new AdminProperties();
 
     @Data
     public static class OAuth2Properties {
@@ -49,5 +50,11 @@ public class AppProperties {
     public static class UpstoxProperties {
         @Value("${app.upstox.access-token}")
         private String accessToken;
+    }
+
+    @Data
+    public static class AdminProperties {
+        @Value("${app.admin.api-key}")
+        private String apiKey;
     }
 }

@@ -2,6 +2,7 @@ package com.dsip.backend.service;
 
 import com.dsip.backend.config.AppProperties;
 import com.dsip.backend.dto.CompanyDetails;
+import com.dsip.backend.exception.StockPriceFetchException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -30,27 +31,23 @@ public class UpstoxService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
-     * Fetches the closing price for an Indian stock on a specific date.
+     * Fetches the latest closing price for an Indian stock.
      * Uses Upstox's historical candle API with Bearer token authentication.
      *
      * @param symbol stock symbol (e.g., "RELIANCE")
      * @param exchange NSE or BSE
-     * @param date the date to fetch closing price for
      * @return closing price, or null if not available
      */
-    public Double fetchClosingPrice(String symbol, String exchange, LocalDate date) {
+    public Double fetchClosingPrice(String symbol, String exchange) {
         try {
-            log.info("Fetching closing price from Upstox API for symbol: {}, exchange: {}, date: {}",
-                     symbol, exchange, date);
+            log.info("Fetching closing price from Upstox API for symbol: {}, exchange: {}", symbol, exchange);
 
             String accessToken = appProperties.getUpstox().getAccessToken();
 
-            // Format instrument key (e.g., "NSE_EQ|INE002A01018" for NSE or "BSE_EQ|500325" for BSE)
-            // Note: This is a simplified version. In production, you'd need to map symbols to instrument keys
             String instrumentKey = String.format("%s_EQ|%s", exchange, symbol);
 
-            // Format date for API (YYYY-MM-DD)
-            String dateStr = date.format(DateTimeFormatter.ISO_LOCAL_DATE);
+            LocalDate today = LocalDate.now();
+            String dateStr = today.format(DateTimeFormatter.ISO_LOCAL_DATE);
 
             String url = String.format(
                     "https://api.upstox.com/v2/historical-candle/%s/day/%s/%s",
@@ -80,12 +77,12 @@ public class UpstoxService {
                 }
             }
 
-            log.warn("No closing price data available for {} on {} exchange on {}", symbol, exchange, date);
+            log.warn("No closing price data available for {} on {} exchange", symbol, exchange);
             return null;
 
         } catch (Exception e) {
             log.error("Error fetching data from Upstox API for symbol: {}, exchange: {}", symbol, exchange, e);
-            throw new RuntimeException("Failed to fetch data from Upstox: " + e.getMessage(), e);
+            throw new StockPriceFetchException(symbol, "Upstox API error: " + e.getMessage(), e);
         }
     }
 

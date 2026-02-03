@@ -2,21 +2,15 @@ package com.dsip.backend.controller;
 
 import com.dsip.backend.dto.StockPriceResponse;
 import com.dsip.backend.entity.Exchange;
+import com.dsip.backend.exception.StockNotFoundException;
 import com.dsip.backend.service.StockService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.Map;
 
-/**
- * REST controller for stock price operations.
- * Provides endpoint to fetch daily closing stock prices with DB caching.
- */
 @RestController
 @RequestMapping("/api/stocks")
 @RequiredArgsConstructor
@@ -26,51 +20,35 @@ public class StockController {
     private final StockService stockService;
 
     /**
-     * Fetches the closing price for a stock on a specific date.
-     * Data is first checked in DB cache. External API is called only if not cached.
+     * Fetches the latest closing price for a stock.
+     * Data is cached per day (UTC). External API is called only if not cached today.
      *
-     * Example requests:
-     * - US stock: GET /api/stocks/close?symbol=AAPL&exchange=US&date=2024-01-10
-     * - Indian stock: GET /api/stocks/close?symbol=RELIANCE&exchange=NSE&date=2024-01-10
-     *
-     * @param symbol stock symbol (e.g., "AAPL", "RELIANCE")
-     * @param exchange exchange (US, NSE, or BSE)
-     * @param date date in YYYY-MM-DD format
-     * @return StockPriceResponse with closing price, source, and company details
+     * Example: GET /api/stocks/close?symbol=AAPL&exchange=US
      */
     @GetMapping("/close")
     public ResponseEntity<StockPriceResponse> getClosingPrice(
             @RequestParam String symbol,
-            @RequestParam Exchange exchange,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+            @RequestParam Exchange exchange) {
 
-        log.info("API request: GET /api/stocks/close - symbol={}, exchange={}, date={}",
-                 symbol, exchange, date);
-
-        try {
-            // Delegate to service layer
-            StockPriceResponse response = stockService.getClosingPrice(symbol, exchange, date);
-
-            log.info("API response: symbol={}, closePrice={}, source={}",
-                     response.getSymbol(), response.getClosePrice(), response.getSource());
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            log.error("Error processing request for symbol: {}, exchange: {}, date: {}",
-                      symbol, exchange, date, e);
-            throw e;
+        if (symbol.isBlank()) {
+            throw new IllegalArgumentException("Stock symbol must not be blank");
         }
+
+        String normalizedSymbol = symbol.trim().toUpperCase();
+        log.info("API request: GET /api/stocks/close - symbol={}, exchange={}", normalizedSymbol, exchange);
+
+        StockPriceResponse response = stockService.getClosingPrice(normalizedSymbol, exchange);
+
+        log.info("API response: symbol={}, closePrice={}, source={}",
+                 response.getSymbol(), response.getClosePrice(), response.getSource());
+
+        return ResponseEntity.ok(response);
     }
 
     /**
-     * Utility endpoint to check if a stock is cached in DB.
-     * Useful for testing and debugging.
+     * Check if a stock is cached in DB for today (UTC).
      *
      * Example: GET /api/stocks/cached?symbol=AAPL
-     *
-     * @param symbol stock symbol
-     * @return JSON response with cached status
      */
     @GetMapping("/cached")
     public ResponseEntity<Map<String, Object>> isCached(@RequestParam String symbol) {
@@ -82,30 +60,27 @@ public class StockController {
     }
 
     /**
-     * Utility endpoint to remove a stock from cache.
-     * Useful for testing and cache invalidation.
+     * Remove a stock from cache.
      *
      * Example: DELETE /api/stocks/cache?symbol=AAPL
-     *
-     * @param symbol stock symbol
-     * @return JSON response with deletion status
      */
     @DeleteMapping("/cache")
     public ResponseEntity<Map<String, Object>> removeFromCache(@RequestParam String symbol) {
-        boolean removed = stockService.removeFromCache(symbol);
-
-        if (removed) {
-            return ResponseEntity.ok(Map.of(
-                    "symbol", symbol,
-                    "message", "Stock removed from cache",
-                    "status", "success"
-            ));
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
-                    "symbol", symbol,
-                    "message", "Stock not found in cache",
-                    "status", "not_found"
-            ));
+        if (symbol.isBlank()) {
+            throw new IllegalArgumentException("Stock symbol must not be blank");
         }
+
+        String normalizedSymbol = symbol.trim().toUpperCase();
+        boolean removed = stockService.removeFromCache(normalizedSymbol);
+
+        if (!removed) {
+            throw new StockNotFoundException(normalizedSymbol);
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "symbol", normalizedSymbol,
+                "message", "Stock removed from cache",
+                "status", "success"
+        ));
     }
 }

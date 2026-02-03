@@ -27,6 +27,14 @@
         WHERE stock_symbol = #{stockSymbol}
     </select>
 
+    <select id="findByStockSymbolAndDate" resultMap="StockResultMap">
+        SELECT
+        <include refid="stockColumns"/>
+        FROM stocks
+        WHERE stock_symbol = #{stockSymbol}
+          AND (last_updated_date AT TIME ZONE 'UTC')::date = #{utcDate}
+    </select>
+
     <select id="existsByStockSymbol" resultType="boolean">
         SELECT EXISTS(
             SELECT 1 FROM stocks WHERE stock_symbol = #{stockSymbol}
