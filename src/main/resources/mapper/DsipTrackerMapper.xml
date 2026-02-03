@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dsip.backend.mapper.DsipTrackerMapper">
+
+    <!-- Tracker Result Map -->
+    <resultMap id="DsipTrackerResultMap" type="com.dsip.backend.entity.DsipTracker">
+        <id property="trackerId" column="tracker_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="stockSymbol" column="stock_symbol"/>
+        <result property="convictionPeriodYears" column="conviction_period_years"/>
+        <result property="totalCapitalPlanned" column="total_capital_planned"/>
+        <result property="partitionDays" column="partition_days"/>
+        <result property="deploymentStyle" column="deployment_style"/>
+        <result property="baseConvictionScore" column="base_conviction_score"/>
+        <result property="initialInvestedAmount" column="initial_invested_amount"/>
+        <result property="initialSharesHeld" column="initial_shares_held"/>
+        <result property="status" column="status"/>
+        <result property="currentPartitionIndex" column="current_partition_index"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <!-- Partition Result Map -->
+    <resultMap id="DsipPartitionResultMap" type="com.dsip.backend.entity.DsipPartition">
+        <id property="partitionId" column="partition_id"/>
+        <id property="trackerId" column="tracker_id"/>
+        <result property="partitionIndex" column="partition_index"/>
+        <result property="partitionStartDate" column="partition_start_date"/>
+        <result property="partitionDays" column="partition_days"/>
+        <result property="partitionCapitalAllocated" column="partition_capital_allocated"/>
+        <result property="successfulExecutionsCompleted" column="successful_executions_completed"/>
+        <result property="capitalDeployedSoFar" column="capital_deployed_so_far"/>
+
+        <result property="activeConvictionScore" column="active_conviction_score"/>
+        <result property="totalLockinPercentageCount" column="total_lockin_percentage_count"/>
+        <result property="consistentGrowthCount" column="consistent_growth_count"/>
+        <result property="status" column="status"/>
+        <result property="partitionEndDate" column="partition_end_date"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <!-- Tracker Operations -->
+    <insert id="insertTracker" parameterType="com.dsip.backend.entity.DsipTracker" useGeneratedKeys="true" keyProperty="trackerId" keyColumn="tracker_id">
+        INSERT INTO dsip_trackers (
+            user_id, stock_symbol, conviction_period_years, total_capital_planned,
+            partition_days, deployment_style, base_conviction_score,
+            initial_invested_amount, initial_shares_held, status, current_partition_index,
+            created_at, updated_at
+        ) VALUES (
+            #{userId}, #{stockSymbol}, #{convictionPeriodYears}, #{totalCapitalPlanned},
+            #{partitionDays}, #{deploymentStyle}, #{baseConvictionScore},
+            #{initialInvestedAmount}, #{initialSharesHeld}, #{status}, #{currentPartitionIndex},
+            #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <select id="findTrackerById" resultMap="DsipTrackerResultMap">
+        SELECT 
+            tracker_id, user_id, stock_symbol, conviction_period_years,
+            total_capital_planned, partition_days, deployment_style,
+            base_conviction_score, initial_invested_amount, initial_shares_held,
+            status, current_partition_index, created_at, updated_at
+        FROM dsip_trackers 
+        WHERE tracker_id = #{trackerId}
+    </select>
+
+    <select id="findAllTrackersByUserId" resultMap="DsipTrackerResultMap">
+        SELECT * FROM dsip_trackers WHERE user_id = #{userId} ORDER BY created_at DESC
+    </select>
+
+    <select id="existsByUserIdAndStockSymbol" resultType="boolean">
+        SELECT EXISTS(SELECT 1 FROM dsip_trackers WHERE user_id = #{userId} AND stock_symbol = #{stockSymbol})
+    </select>
+
+
+
+    <update id="updatePartitionMetrics">
+        UPDATE dsip_partitions
+        SET
+            successful_executions_completed = successful_executions_completed + 1,
+            capital_deployed_so_far = capital_deployed_so_far + #{amount},
+            active_conviction_score = #{activeConvictionScore},
+            total_lockin_percentage_count = #{totalLockinPercentageCount},
+            consistent_growth_count = #{consistentGrowthCount},
+            status = #{status},
+            partition_end_date = #{endDate, jdbcType=DATE},
+            updated_at = NOW()
+        WHERE partition_id = #{partitionId}
+    </update>
+
+    <update id="updateTracker" parameterType="com.dsip.backend.entity.DsipTracker">
+        UPDATE dsip_trackers
+        SET deployment_style = #{deploymentStyle},
+            base_conviction_score = #{baseConvictionScore},
+            current_partition_index = #{currentPartitionIndex},
+            status = #{status},
+            updated_at = NOW()
+        WHERE tracker_id = #{trackerId}
+    </update>
+
+    <update id="updateTrackerStatus">
+        UPDATE dsip_trackers
+        SET status = #{status},
+        updated_at = NOW()
+        WHERE tracker_id = #{trackerId}
+    </update>
+
+    <!-- Partition Operations -->
+    <insert id="insertPartition" parameterType="com.dsip.backend.entity.DsipPartition" useGeneratedKeys="true" keyProperty="partitionId" keyColumn="partition_id">
+        INSERT INTO dsip_partitions (
+            tracker_id, partition_index, partition_start_date,
+            partition_days, partition_capital_allocated,
+            successful_executions_completed, capital_deployed_so_far,
+            active_conviction_score, total_lockin_percentage_count, consistent_growth_count,
+            status, partition_end_date,
+            created_at, updated_at
+        ) VALUES (
+            #{trackerId}, #{partitionIndex}, #{partitionStartDate},
+            #{partitionDays}, #{partitionCapitalAllocated},
+            #{successfulExecutionsCompleted}, #{capitalDeployedSoFar},
+            #{activeConvictionScore}, #{totalLockinPercentageCount}, #{consistentGrowthCount},
+            #{status}, #{partitionEndDate, jdbcType=DATE},
+            #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <select id="findPartitionsByTrackerId" resultMap="DsipPartitionResultMap">
+        SELECT * FROM dsip_partitions WHERE tracker_id = #{trackerId} ORDER BY partition_index ASC
+    </select>
+
+    <select id="findActivePartitionByTrackerId" resultMap="DsipPartitionResultMap">
+        SELECT 
+            partition_id, tracker_id, partition_index, partition_start_date,
+            partition_days, partition_capital_allocated, successful_executions_completed,
+            capital_deployed_so_far, active_conviction_score, total_lockin_percentage_count,
+            consistent_growth_count, status, partition_end_date, created_at, updated_at
+        FROM dsip_partitions 
+        WHERE tracker_id = #{trackerId} 
+          AND status = 1 /* PartitionStatus.ACTIVE */
+        ORDER BY partition_index DESC
+        LIMIT 1
+    </select>
+
+    <!-- Execution Result Map -->
+    <resultMap id="DsipExecutionResultMap" type="com.dsip.backend.entity.DsipExecution">
+        <id property="executionId" column="execution_id"/>
+        <result property="trackerId" column="tracker_id"/>
+        <result property="partitionId" column="partition_id"/>
+        <result property="executionDate" column="execution_date"/>
+        <result property="lockInPercentage" column="lock_in_percentage"/>
+        <result property="convictionOverride" column="conviction_override"/>
+        <result property="executedAmount" column="executed_amount"/>
+        <result property="executionPrice" column="execution_price"/>
+        <result property="lastExecutedAvgPrice" column="last_executed_avg_price"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <!-- Execution Operations -->
+    <insert id="insertExecution" parameterType="com.dsip.backend.entity.DsipExecution" useGeneratedKeys="true" keyProperty="executionId" keyColumn="execution_id">
+        INSERT INTO dsip_executions (
+            tracker_id, partition_id, execution_date,
+            lock_in_percentage, conviction_override,
+            executed_amount, execution_price, last_executed_avg_price,
+            created_at
+        ) VALUES (
+            #{trackerId}, #{partitionId}, #{executionDate},
+            #{lockInPercentage}, #{convictionOverride, jdbcType=INTEGER},
+            #{executedAmount}, #{executionPrice}, #{lastExecutedAvgPrice, jdbcType=DECIMAL},
+            #{createdAt}
+        )
+    </insert>
+
+    <select id="findExecutionsByTrackerId" resultMap="DsipExecutionResultMap">
+        SELECT * FROM dsip_executions
+        WHERE tracker_id = #{trackerId}
+        ORDER BY execution_date DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>

@@ -31,10 +31,9 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
-                                        HttpServletResponse response,
-                                        Authentication authentication) throws IOException, ServletException {
+            HttpServletResponse response,
+            Authentication authentication) throws IOException, ServletException {
         if (!(authentication instanceof OAuth2AuthenticationToken oauthToken)) {
-            log.error("Unexpected authentication type: {}", authentication.getClass());
             response.sendRedirect(appProperties.getOauth2().getFailureRedirectUrl());
             return;
         }
@@ -67,6 +66,7 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
         // Set session creation time for absolute lifetime tracking
         HttpSession session = request.getSession(false);
         if (session != null) {
+            log.info("Configuring session: {}", session.getId());
             session.setAttribute(SESSION_CREATED_AT, Instant.now().toEpochMilli());
 
             // Set inactivity timeout (in seconds)
@@ -74,13 +74,12 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
             session.setMaxInactiveInterval(inactivityTimeoutSeconds);
         }
 
-        log.info("Successful authentication for user: {}", email);
         response.sendRedirect(appProperties.getOauth2().getSuccessRedirectUrl());
     }
 
     private void invalidateSessionAndRedirect(HttpServletRequest request,
-                                              HttpServletResponse response,
-                                              String redirectUrl) throws IOException {
+            HttpServletResponse response,
+            String redirectUrl) throws IOException {
         HttpSession session = request.getSession(false);
         if (session != null) {
             session.invalidate();
