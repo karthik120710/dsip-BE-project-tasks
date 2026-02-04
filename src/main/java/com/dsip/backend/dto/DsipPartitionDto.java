@@ -6,7 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import java.math.BigDecimal;
+
 import java.time.Instant;
 import java.time.LocalDate;
 
@@ -25,58 +25,42 @@ public class DsipPartitionDto {
     @JsonProperty("partition_index")
     private Integer partitionIndex;
 
-    @JsonProperty("partition_start_date")
-    private LocalDate partitionStartDate;
-
-    @JsonProperty("partition_days")
-    private Integer partitionDays;
+    @JsonProperty("expected_partition_days")
+    private Integer expectedPartitionDays;
 
     @JsonProperty("partition_capital_allocated")
     private Integer partitionCapitalAllocated;
 
-    @JsonProperty("successful_executions_completed")
-    private Integer successfulExecutionsCompleted;
+    @JsonProperty("capital_invested_so_far")
+    private Integer capitalInvestedSoFar;
 
-    @JsonProperty("capital_deployed_so_far")
-    private Integer capitalDeployedSoFar;
+    @JsonProperty("no_of_shares_bought")
+    private Integer noOfSharesBought;
 
-    @JsonProperty("active_conviction_score")
-    private Integer activeConvictionScore;
-
-    @JsonProperty("total_lockin_percentage_count")
-    private BigDecimal totalLockinPercentageCount;
-
-    @JsonProperty("consistent_growth_count")
-    private Integer consistentGrowthCount;
-
-    private Integer status;
+    @JsonProperty("successful_growth_count")
+    private Integer successfulGrowthCount;
 
     @JsonProperty("partition_end_date")
     private LocalDate partitionEndDate;
 
+    private Integer status;
+
     @JsonProperty("created_at")
     private Instant createdAt;
-
-    @JsonProperty("updated_at")
-    private Instant updatedAt;
 
     public static DsipPartitionDto fromEntity(DsipPartition partition) {
         return DsipPartitionDto.builder()
                 .partitionId(partition.getPartitionId())
                 .trackerId(partition.getTrackerId())
                 .partitionIndex(partition.getPartitionIndex())
-                .partitionStartDate(partition.getPartitionStartDate())
-                .partitionDays(partition.getPartitionDays())
+                .expectedPartitionDays(partition.getExpectedPartitionDays())
                 .partitionCapitalAllocated(partition.getPartitionCapitalAllocated())
-                .successfulExecutionsCompleted(partition.getSuccessfulExecutionsCompleted())
-                .capitalDeployedSoFar(partition.getCapitalDeployedSoFar())
-                .activeConvictionScore(partition.getActiveConvictionScore())
-                .totalLockinPercentageCount(partition.getTotalLockinPercentageCount())
-                .consistentGrowthCount(partition.getConsistentGrowthCount())
-                .status(partition.getStatus())
+                .capitalInvestedSoFar(partition.getCapitalInvestedSoFar())
+                .noOfSharesBought(partition.getNoOfSharesBought())
+                .successfulGrowthCount(partition.getSuccessfulGrowthCount())
                 .partitionEndDate(partition.getPartitionEndDate())
+                .status(partition.getStatus())
                 .createdAt(partition.getCreatedAt())
-                .updatedAt(partition.getUpdatedAt())
                 .build();
     }
 }

@@ -3,9 +3,10 @@ package com.dsip.backend.controller;
 import com.dsip.backend.auth.CurrentUser;
 import com.dsip.backend.dto.DsipTrackerDto;
 import com.dsip.backend.dto.DsipTrackerUpdateDto;
-import com.dsip.backend.entity.DsipTracker;
+import com.dsip.backend.dto.DsipExecutionRequestDto;
 import com.dsip.backend.entity.User;
 import com.dsip.backend.service.DsipTrackerService;
+import com.dsip.backend.service.ExecutionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,26 +23,24 @@ import java.util.Map;
 public class DsipTrackerController {
 
     private final DsipTrackerService dsipTrackerService;
+    private final ExecutionService executionService;
 
     @PostMapping
     public ResponseEntity<DsipTrackerDto> createTracker(
             @CurrentUser User user,
             @Valid @RequestBody DsipTrackerDto request) {
 
-        DsipTracker tracker = dsipTrackerService.createTracker(user.getId(), request);
+        DsipTrackerDto tracker = dsipTrackerService.createTracker(user.getId(), request);
 
-        return ResponseEntity.ok(DsipTrackerDto.fromEntity(tracker));
+        return ResponseEntity.ok(tracker);
     }
 
     @GetMapping
     public ResponseEntity<List<DsipTrackerDto>> getAllTrackers(
             @CurrentUser User user) {
 
-        List<DsipTracker> trackers = dsipTrackerService.getAllTrackers(user.getId());
-        List<DsipTrackerDto> dtos = trackers.stream()
-                .map(DsipTrackerDto::fromEntity)
-                .toList();
-        return ResponseEntity.ok(dtos);
+        List<DsipTrackerDto> trackers = dsipTrackerService.getAllTrackers(user.getId());
+        return ResponseEntity.ok(trackers);
     }
 
     @GetMapping("/{trackerId}")
@@ -68,9 +67,9 @@ public class DsipTrackerController {
     public ResponseEntity<Map<String, Object>> executeTracker(
             @CurrentUser User user,
             @PathVariable Integer trackerId,
-            @Valid @RequestBody com.dsip.backend.dto.DsipExecutionRequestDto request) {
+            @Valid @RequestBody DsipExecutionRequestDto request) {
 
-        Map<String, Object> result = dsipTrackerService.recordExecution(trackerId, user.getId(), request);
+        Map<String, Object> result = executionService.executeTrade(trackerId, user.getId(), request);
         return ResponseEntity.ok(result);
     }
 

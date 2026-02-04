@@ -15,6 +15,14 @@ import java.util.Optional;
 public interface StockMapper {
 
     /**
+     * Finds a stock by its ID.
+     *
+     * @param id the stock ID to search for
+     * @return Optional containing the stock if found, empty otherwise
+     */
+    Optional<Stock> findById(@Param("id") Long id);
+
+    /**
      * Finds a stock by its symbol.
      * This is the PRIMARY lookup method for cache checking.
      *

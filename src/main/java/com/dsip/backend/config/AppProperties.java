@@ -5,6 +5,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.beans.factory.annotation.Value;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Configuration
 @ConfigurationProperties(prefix = "app")
 @Data
@@ -42,8 +45,7 @@ public class AppProperties {
 
     @Data
     public static class FinnhubProperties {
-        @Value("${app.finnhub.api-key}")
-        private String apiKey;
+        private List<String> apiKeys = new ArrayList<>();
     }
 
     @Data

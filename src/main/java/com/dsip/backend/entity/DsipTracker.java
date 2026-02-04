@@ -16,7 +16,7 @@ public class DsipTracker {
     private Integer trackerId;
     private UUID userId;
 
-    private String stockSymbol;
+    private Integer stockId;
 
     private Integer convictionPeriodYears;
     private Integer totalCapitalPlanned;
@@ -30,8 +30,10 @@ public class DsipTracker {
 
     private Integer status;
 
-    private Integer currentPartitionIndex;
+    private Integer activePartitionIndex;
+    private Integer totalCapitalInvestedSoFar;
+    private Integer sharesHeldSoFar;
+    private Boolean isFractionalSharesAllowed;
 
     private Instant createdAt;
-    private Instant updatedAt;
 }

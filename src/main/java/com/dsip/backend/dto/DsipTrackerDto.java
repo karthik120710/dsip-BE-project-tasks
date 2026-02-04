@@ -19,11 +19,28 @@ public class DsipTrackerDto {
 
     private Integer trackerId;
     private java.util.UUID userId;
+
+    @JsonProperty("stock_id")
+    private Integer stockId;
+
     @NotBlank(message = "Stock symbol is required")
+    @JsonProperty("stock_symbol")
     private String stockSymbol;
+
     private Integer status;
-    @JsonProperty("current_partition_index")
-    private Integer currentPartitionIndex;
+
+    @JsonProperty("active_partition_index")
+    private Integer activePartitionIndex;
+
+    @JsonProperty("total_capital_invested_so_far")
+    private Integer totalCapitalInvestedSoFar;
+
+    @JsonProperty("shares_held_so_far")
+    private Integer sharesHeldSoFar;
+
+    @JsonProperty("is_fractional_shares_allowed")
+    @Builder.Default
+    private Boolean isFractionalSharesAllowed = false;
 
     @JsonProperty("initial_invested_amount")
     @Builder.Default
@@ -62,13 +79,13 @@ public class DsipTrackerDto {
     private Integer baseConvictionScore;
 
     private java.time.Instant createdAt;
-    private java.time.Instant updatedAt;
 
-    public static DsipTrackerDto fromEntity(com.dsip.backend.entity.DsipTracker tracker) {
+    public static DsipTrackerDto fromEntity(com.dsip.backend.entity.DsipTracker tracker, String stockSymbol) {
         return DsipTrackerDto.builder()
                 .trackerId(tracker.getTrackerId())
                 .userId(tracker.getUserId())
-                .stockSymbol(tracker.getStockSymbol())
+                .stockId(tracker.getStockId())
+                .stockSymbol(stockSymbol)
                 .convictionPeriodYears(tracker.getConvictionPeriodYears())
                 .totalCapitalPlanned(tracker.getTotalCapitalPlanned())
                 .partitionDays(tracker.getPartitionDays())
@@ -77,9 +94,11 @@ public class DsipTrackerDto {
                 .initialInvestedAmount(tracker.getInitialInvestedAmount())
                 .initialSharesHeld(tracker.getInitialSharesHeld())
                 .status(tracker.getStatus())
-                .currentPartitionIndex(tracker.getCurrentPartitionIndex())
+                .activePartitionIndex(tracker.getActivePartitionIndex())
+                .totalCapitalInvestedSoFar(tracker.getTotalCapitalInvestedSoFar())
+                .sharesHeldSoFar(tracker.getSharesHeldSoFar())
+                .isFractionalSharesAllowed(tracker.getIsFractionalSharesAllowed())
                 .createdAt(tracker.getCreatedAt())
-                .updatedAt(tracker.getUpdatedAt())
                 .build();
     }
 }

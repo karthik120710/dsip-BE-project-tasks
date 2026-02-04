@@ -8,11 +8,12 @@ import java.util.Arrays;
 @Getter
 @RequiredArgsConstructor
 public enum DeploymentStyle {
-    GRADUAL(1),
-    MODERATE(2),
-    AGGRESSIVE(3);
+    GRADUAL(1, "gradual"),
+    MODERATE(2, "moderate"),
+    AGGRESSIVE(3, "aggressive");
 
     private final int value;
+    private final String key;
 
     public static DeploymentStyle fromValue(int value) {
         return Arrays.stream(values())

@@ -7,6 +7,7 @@ import com.dsip.backend.entity.DsipTracker;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,12 +22,16 @@ public interface DsipTrackerMapper {
 
     List<DsipTracker> findAllTrackersByUserId(@Param("userId") UUID userId, @Param("statuses") List<Integer> statuses);
 
-    boolean existsByUserIdAndStockSymbol(@Param("userId") UUID userId, @Param("stockSymbol") String stockSymbol);
+    boolean existsByUserIdAndStockId(@Param("userId") UUID userId, @Param("stockId") Integer stockId);
 
     int updateTracker(DsipTracker tracker);
 
-    // Soft delete (change status to PAUSED/DELETED)
     int updateTrackerStatus(@Param("trackerId") Integer trackerId, @Param("status") int status);
+
+    void updateTrackerAggregates(@Param("trackerId") Integer trackerId,
+            @Param("executedAmount") Integer executedAmount,
+            @Param("sharesBought") Integer sharesBought,
+            @Param("activePartitionIndex") Integer activePartitionIndex);
 
     // Partition Operations
     int insertPartition(DsipPartition partition);
@@ -35,16 +40,19 @@ public interface DsipTrackerMapper {
 
     Optional<DsipPartition> findActivePartitionByTrackerId(@Param("trackerId") Integer trackerId);
 
+    void updatePartitionAfterExecution(@Param("partitionId") Integer partitionId,
+            @Param("executedAmount") Integer executedAmount,
+            @Param("sharesBought") Integer sharesBought,
+            @Param("isGrowth") boolean isGrowth);
+
+    void closePartition(@Param("partitionId") Integer partitionId, @Param("endDate") LocalDate endDate);
+
+    List<Integer> findPartitionLengths(@Param("trackerId") Integer trackerId);
+
     // Execution Operations
     int insertExecution(DsipExecution execution);
 
-    void updatePartitionMetrics(@Param("partitionId") Integer partitionId,
-            @Param("amount") Integer amount,
-            @Param("status") Integer status,
-            @Param("endDate") java.time.LocalDate endDate,
-            @Param("activeConvictionScore") Integer activeConvictionScore,
-            @Param("totalLockinPercentageCount") Integer totalLockinPercentageCount,
-            @Param("consistentGrowthCount") Integer consistentGrowthCount);
-
     List<DsipExecution> findExecutionsByTrackerId(@Param("trackerId") Integer trackerId, @Param("limit") Integer limit);
+
+    List<DsipExecution> findExecutionsByPartitionId(@Param("partitionId") Integer partitionId);
 }

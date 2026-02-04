@@ -61,24 +61,10 @@ CREATE TABLE IF NOT EXISTS stocks (
 CREATE INDEX IF NOT EXISTS idx_stocks_symbol ON stocks(stock_symbol);
 CREATE INDEX IF NOT EXISTS idx_stocks_exchange ON stocks(listed_exchange);
 
--- Stocks table for caching daily closing stock prices
-CREATE TABLE IF NOT EXISTS stocks (
-    id BIGSERIAL PRIMARY KEY,
-    stock_symbol VARCHAR(50) NOT NULL UNIQUE,
-    stock_name VARCHAR(255),
-    listed_exchange VARCHAR(10) NOT NULL CHECK (listed_exchange IN ('US', 'NSE', 'BSE')),
-    last_date_market_closing_price DOUBLE PRECISION,
-    last_updated_date TIMESTAMP WITH TIME ZONE NOT NULL,
-    CONSTRAINT stocks_symbol_unique UNIQUE (stock_symbol)
-);
-
-CREATE INDEX IF NOT EXISTS idx_stocks_symbol ON stocks(stock_symbol);
-CREATE INDEX IF NOT EXISTS idx_stocks_exchange ON stocks(listed_exchange);
-
 CREATE TABLE IF NOT EXISTS dsip_trackers (
     tracker_id SERIAL PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users (id),
-    stock_symbol VARCHAR(20) NOT NULL,
+    stock_id BIGINT NOT NULL REFERENCES stocks (id),
     conviction_period_years SMALLINT NOT NULL,
     total_capital_planned INTEGER NOT NULL,
     partition_days SMALLINT NOT NULL,
@@ -87,10 +73,12 @@ CREATE TABLE IF NOT EXISTS dsip_trackers (
     initial_invested_amount INTEGER NOT NULL,
     initial_shares_held INTEGER NOT NULL,
     status SMALLINT NOT NULL,
+    active_partition_index SMALLINT,
+    total_capital_invested_so_far INTEGER NOT NULL DEFAULT 0,
+    shares_held_so_far INTEGER NOT NULL DEFAULT 0,
+    is_fractional_shares_allowed BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    current_partition_index SMALLINT,
-    CONSTRAINT uq_tracker_user_stock UNIQUE (user_id, stock_symbol)
+    CONSTRAINT uq_tracker_user_stock UNIQUE (user_id, stock_id)
 );
 
 -- Covers: WHERE user_id = ? ORDER BY created_at DESC (getAllTrackers)
@@ -100,18 +88,14 @@ CREATE TABLE IF NOT EXISTS dsip_partitions (
     partition_id SERIAL PRIMARY KEY,
     tracker_id INTEGER NOT NULL REFERENCES dsip_trackers (tracker_id),
     partition_index SMALLINT NOT NULL,
-    partition_start_date DATE NOT NULL,
-    partition_days SMALLINT NOT NULL,
+    expected_partition_days SMALLINT NOT NULL,
     partition_capital_allocated INTEGER NOT NULL,
-    successful_executions_completed SMALLINT NOT NULL,
-    capital_deployed_so_far INTEGER NOT NULL,
-    active_conviction_score SMALLINT NOT NULL,
-    total_lockin_percentage_count DECIMAL(10, 2),
-    consistent_growth_count SMALLINT,
+    capital_invested_so_far INTEGER NOT NULL DEFAULT 0,
+    no_of_shares_bought INTEGER NOT NULL DEFAULT 0,
+    successful_growth_count SMALLINT NOT NULL DEFAULT 0,
+    partition_end_date DATE,
     status SMALLINT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    partition_end_date DATE
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 -- Covers: WHERE tracker_id = ? AND status = 1 (findActivePartitionByTrackerId)
@@ -124,20 +108,18 @@ CREATE TABLE IF NOT EXISTS dsip_executions (
     execution_id SERIAL PRIMARY KEY,
     tracker_id INTEGER NOT NULL REFERENCES dsip_trackers (tracker_id),
     partition_id INTEGER NOT NULL REFERENCES dsip_partitions (partition_id),
-    execution_date DATE NOT NULL,
     lock_in_percentage SMALLINT NOT NULL,
     conviction_override SMALLINT,
-    executed_amount SMALLINT NOT NULL,
-    execution_price DECIMAL NOT NULL,
-    last_executed_avg_price DECIMAL,
+    executed_amount INTEGER NOT NULL,
+    execution_price INTEGER NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 -- For foreign key constraint and partition-based lookups
 CREATE INDEX IF NOT EXISTS idx_exec_partition ON dsip_executions (partition_id);
 
--- Covers: WHERE tracker_id = ? ORDER BY execution_date DESC LIMIT ? (getRecentExecutions)
+-- Covers: WHERE tracker_id = ? ORDER BY created_at DESC LIMIT ? (getRecentExecutions)
 CREATE INDEX IF NOT EXISTS idx_exec_tracker_date ON dsip_executions (
     tracker_id,
-    execution_date DESC
+    created_at DESC
 );

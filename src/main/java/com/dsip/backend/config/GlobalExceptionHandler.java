@@ -117,22 +117,6 @@ public class GlobalExceptionHandler {
                 "timestamp", Instant.now().toString()));
     }
 
-    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<Map<String, Object>> handleMethodArgumentTypeMismatchException(
-            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException ex) {
-
-        String message = "Invalid parameter value";
-        if (ex.getRequiredType() != null) {
-            message = String.format("Invalid value for parameter '%s': expected %s",
-                    ex.getName(), ex.getRequiredType().getSimpleName());
-        }
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                "error", "Bad Request",
-                "message", message,
-                "timestamp", Instant.now().toString()));
-    }
-
     @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, Object>> handleHttpMessageNotReadableException(
             org.springframework.http.converter.HttpMessageNotReadableException ex) {

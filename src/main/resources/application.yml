@@ -3,10 +3,10 @@ server:
   servlet:
     session:
       cookie:
-        name: DSIP_SESSION
-        http-only: true
-        secure: ${COOKIE_SECURE:true}
-        same-site: lax
+        name: ${COOKIE_NAME:DSIP_SESSION}
+        http-only: ${COOKIE_HTTP_ONLY:true}
+        secure: ${COOKIE_SECURE:false}
+        same-site: ${COOKIE_SAME_SITE:lax}
         max-age: ${SESSION_MAX_AGE:5184000}  # 60 days in seconds (2 months)
 
 spring:
@@ -61,7 +61,7 @@ mybatis:
 # Application-specific configuration
 app:
   oauth2:
-    success-redirect-url: ${OAUTH2_SUCCESS_REDIRECT_URL:http://localhost:3000}
+    success-redirect-url: ${OAUTH2_SUCCESS_REDIRECT_URL:http://localhost:3000/auth/callback}
     failure-redirect-url: ${OAUTH2_FAILURE_REDIRECT_URL:http://localhost:3000/auth/error}
     whitelist-failure-redirect-url: ${OAUTH2_WHITELIST_FAILURE_REDIRECT_URL:http://localhost:3000/auth/unauthorized}
 
@@ -74,13 +74,31 @@ app:
 
   # Stock API Configuration
   finnhub:
-    api-key: ${FINNHUB_API_KEY:your-finnhub-api-key}
+    api-keys:
+      - ${FINNHUB_API_KEY_1:}
+      - ${FINNHUB_API_KEY_2:}
+      - ${FINNHUB_API_KEY_3:}
+      - ${FINNHUB_API_KEY_4:}
+      - ${FINNHUB_API_KEY_5:}
+      - ${FINNHUB_API_KEY_6:}
+      - ${FINNHUB_API_KEY_7:}
+      - ${FINNHUB_API_KEY_8:}
+      - ${FINNHUB_API_KEY_9:}
+      - ${FINNHUB_API_KEY_10:}
 
   upstox:
     access-token: ${UPSTOX_ACCESS_TOKEN:your-upstox-access-token}
 
   admin:
     api-key: ${ADMIN_API_KEY}
+
+dsip:
+  trading-days-per-year: ${DSIP_TRADING_DAYS_PER_YEAR:252}
+  phase-count: ${DSIP_PHASE_COUNT:3}
+  load-factor:
+    gradual: ${DSIP_LOAD_FACTOR_GRADUAL:0.5,1.0,1.5}
+    moderate: ${DSIP_LOAD_FACTOR_MODERATE:0.8,1.0,1.2}
+    aggressive: ${DSIP_LOAD_FACTOR_AGGRESSIVE:1.0,1.0,1.0}
 
 logging:
   level:

@@ -6,9 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-
 @Data
 @Builder
 @NoArgsConstructor
@@ -24,10 +21,6 @@ public class DsipExecutionDto {
     @JsonProperty("partition_id")
     private Integer partitionId;
 
-    @JsonProperty("execution_date")
-    @com.fasterxml.jackson.annotation.JsonFormat(shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING, pattern = "yyyy-M-d")
-    private LocalDate executionDate;
-
     @JsonProperty("lock_in_percentage")
     private Integer lockInPercentage;
 
@@ -38,10 +31,7 @@ public class DsipExecutionDto {
     private Integer executedAmount;
 
     @JsonProperty("execution_price")
-    private BigDecimal executionPrice;
-
-    @JsonProperty("last_executed_avg_price")
-    private BigDecimal lastExecutedAvgPrice;
+    private Integer executionPrice;
 
     @JsonProperty("created_at")
     private java.time.Instant createdAt;
@@ -51,12 +41,10 @@ public class DsipExecutionDto {
                 .executionId(execution.getExecutionId())
                 .trackerId(execution.getTrackerId())
                 .partitionId(execution.getPartitionId())
-                .executionDate(execution.getExecutionDate())
                 .lockInPercentage(execution.getLockInPercentage())
                 .convictionOverride(execution.getConvictionOverride())
                 .executedAmount(execution.getExecutedAmount())
                 .executionPrice(execution.getExecutionPrice())
-                .lastExecutedAvgPrice(execution.getLastExecutedAvgPrice())
                 .createdAt(execution.getCreatedAt())
                 .build();
     }

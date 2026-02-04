@@ -20,6 +20,13 @@
     </sql>
 
     <!-- Select Queries -->
+    <select id="findById" resultMap="StockResultMap">
+        SELECT
+        <include refid="stockColumns"/>
+        FROM stocks
+        WHERE id = #{id}
+    </select>
+
     <select id="findByStockSymbol" resultMap="StockResultMap">
         SELECT
         <include refid="stockColumns"/>

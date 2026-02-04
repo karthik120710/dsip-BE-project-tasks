@@ -42,6 +42,7 @@ public class SecurityConfig {
                         // Public endpoints
                         .requestMatchers("/", "/error", "/health").permitAll()
                         .requestMatchers("/oauth2/**", "/login/**").permitAll()
+                        .requestMatchers("/api/auth/status").permitAll()
                         // Stock read endpoints are public
                         .requestMatchers(HttpMethod.GET, "/api/stocks/**").permitAll()
                         // Stock DELETE and admin endpoints are protected by AdminApiKeyFilter

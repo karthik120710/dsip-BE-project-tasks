@@ -5,7 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
@@ -19,23 +18,16 @@ public class DsipPartition {
 
     private Integer partitionIndex;
 
-    private LocalDate partitionStartDate;
-
-    private Integer partitionDays;
+    private Integer expectedPartitionDays;
     private Integer partitionCapitalAllocated;
 
-    private Integer successfulExecutionsCompleted;
-    private Integer capitalDeployedSoFar;
-
-    private Integer activeConvictionScore;
-
-    private BigDecimal totalLockinPercentageCount;
-    private Integer consistentGrowthCount;
-
-    private Integer status;
+    private Integer capitalInvestedSoFar;
+    private Integer noOfSharesBought;
+    private Integer successfulGrowthCount;
 
     private LocalDate partitionEndDate;
 
+    private Integer status;
+
     private Instant createdAt;
-    private Instant updatedAt;
 }
