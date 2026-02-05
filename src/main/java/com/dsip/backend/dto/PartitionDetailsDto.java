@@ -10,11 +10,32 @@ import java.time.Instant;
 @Builder
 public class PartitionDetailsDto {
 
+    @JsonProperty("partition_index")
+    private Integer partitionIndex;
+
+    @JsonProperty("status")
+    private Integer status;
+
+    @JsonProperty("capital_allocated")
+    private Integer capitalAllocated;
+
     @JsonProperty("capital_deployed")
     private Double capitalDeployed;
 
+    @JsonProperty("shares_bought")
+    private Integer sharesBought;
+
+    @JsonProperty("current_market_value")
+    private Double currentMarketValue;
+
     @JsonProperty("net_profit_percentage")
     private Double netProfitPercentage;
+
+    @JsonProperty("growth_count")
+    private Integer growthCount;
+
+    @JsonProperty("expected_days")
+    private Integer expectedDays;
 
     @JsonProperty("start_date")
     private Instant startDate;

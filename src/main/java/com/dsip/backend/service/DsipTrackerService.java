@@ -389,21 +389,31 @@ public class DsipTrackerService {
                                 .orElseThrow(() -> new PartitionNotFoundException(trackerId));
 
                 Double netProfitPercentage = 0.0;
-                if (partition.getCapitalInvestedSoFar() != null && partition.getCapitalInvestedSoFar() > 0) {
+                Double currentMarketValue = 0.0;
+                int sharesBought = partition.getNoOfSharesBought() != null ? partition.getNoOfSharesBought() : 0;
+                int capitalInvested = partition.getCapitalInvestedSoFar() != null ? partition.getCapitalInvestedSoFar() : 0;
+
+                if (capitalInvested > 0) {
                         com.dsip.backend.entity.Stock stock = stockMapper.findById(Long.valueOf(tracker.getStockId()))
                                         .orElseThrow(() -> new StockNotFoundException(
                                                         String.valueOf(tracker.getStockId())));
 
-                        double currentMarketValue = financialCalculator.calculateMarketValue(
-                                        stock.getLastDateMarketClosingPrice(),
-                                        partition.getNoOfSharesBought() != null ? partition.getNoOfSharesBought() : 0);
+                        currentMarketValue = financialCalculator.calculateMarketValue(
+                                        stock.getLastDateMarketClosingPrice(), sharesBought);
                         netProfitPercentage = financialCalculator.calculateProfitPercentage(currentMarketValue,
-                                        partition.getCapitalInvestedSoFar());
+                                        capitalInvested);
                 }
 
                 return com.dsip.backend.dto.PartitionDetailsDto.builder()
-                                .capitalDeployed((double) partition.getCapitalInvestedSoFar())
+                                .partitionIndex(partition.getPartitionIndex())
+                                .status(partition.getStatus())
+                                .capitalAllocated(partition.getPartitionCapitalAllocated())
+                                .capitalDeployed((double) capitalInvested)
+                                .sharesBought(sharesBought)
+                                .currentMarketValue(currentMarketValue)
                                 .netProfitPercentage(netProfitPercentage)
+                                .growthCount(partition.getSuccessfulGrowthCount() != null ? partition.getSuccessfulGrowthCount() : 0)
+                                .expectedDays(partition.getExpectedPartitionDays())
                                 .startDate(partition.getCreatedAt())
                                 .endDate(partition.getPartitionEndDate())
                                 .build();
