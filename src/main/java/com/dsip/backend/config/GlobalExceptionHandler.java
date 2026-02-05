@@ -63,8 +63,7 @@ public class GlobalExceptionHandler {
                 "error", "Missing required parameter",
                 "message", String.format("Required parameter '%s' of type %s is missing",
                         ex.getParameterName(), ex.getParameterType()),
-                "timestamp", Instant.now().toString()
-        ));
+                "timestamp", Instant.now().toString()));
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
@@ -84,8 +83,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
                 "error", "Invalid parameter",
                 "message", message,
-                "timestamp", Instant.now().toString()
-        ));
+                "timestamp", Instant.now().toString()));
     }
 
     @ExceptionHandler(StockNotFoundException.class)
@@ -93,8 +91,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
                 "error", "Stock not found",
                 "message", ex.getMessage(),
-                "timestamp", Instant.now().toString()
-        ));
+                "timestamp", Instant.now().toString()));
     }
 
     @ExceptionHandler(StockPriceFetchException.class)
@@ -103,8 +100,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of(
                 "error", "Unable to fetch stock price",
                 "message", ex.getMessage(),
-                "timestamp", Instant.now().toString()
-        ));
+                "timestamp", Instant.now().toString()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -210,13 +206,54 @@ public class GlobalExceptionHandler {
                 "timestamp", Instant.now().toString()));
     }
 
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNoResourceFoundException(
+            org.springframework.web.servlet.resource.NoResourceFoundException ex) {
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                "error", "Not Found",
+                "message", ex.getMessage(),
+                "timestamp", Instant.now().toString()));
+    }
+
+    @ExceptionHandler(com.dsip.backend.exception.InvalidCapitalUpdateException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidCapitalUpdateException(
+            com.dsip.backend.exception.InvalidCapitalUpdateException ex) {
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                "error", "Invalid update",
+                "message", ex.getMessage(),
+                "timestamp", Instant.now().toString()));
+    }
+
+    @ExceptionHandler(com.dsip.backend.exception.InvalidTrackerUpdateException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidTrackerUpdateException(
+            com.dsip.backend.exception.InvalidTrackerUpdateException ex) {
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                "error", "Invalid update",
+                "message", ex.getMessage(),
+                "timestamp", Instant.now().toString()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
         log.error("Unhandled exception", ex);
 
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
-                "error", "Internal server error",
-                "message", "An unexpected error occurred",
-                "timestamp", Instant.now().toString()));
+        Map<String, Object> body = new HashMap<>();
+        body.put("error", "Internal server error");
+        body.put("message", "An unexpected error occurred");
+        body.put("timestamp", Instant.now().toString());
+
+        if (ex.getStackTrace().length > 0) {
+            StackTraceElement element = ex.getStackTrace()[0];
+            body.put("source", String.format("%s.%s(%s:%d)",
+                    element.getClassName(),
+                    element.getMethodName(),
+                    element.getFileName(),
+                    element.getLineNumber()));
+        }
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 }

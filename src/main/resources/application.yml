@@ -22,6 +22,11 @@ spring:
       maximum-pool-size: ${DB_POOL_SIZE:10}
       minimum-idle: ${DB_POOL_MIN_IDLE:5}
 
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+
 # MyBatis Configuration
   session:
     store-type: jdbc
@@ -96,9 +101,9 @@ dsip:
   trading-days-per-year: ${DSIP_TRADING_DAYS_PER_YEAR:252}
   phase-count: ${DSIP_PHASE_COUNT:3}
   load-factor:
-    gradual: ${DSIP_LOAD_FACTOR_GRADUAL:0.5,1.0,1.5}
-    moderate: ${DSIP_LOAD_FACTOR_MODERATE:0.8,1.0,1.2}
-    aggressive: ${DSIP_LOAD_FACTOR_AGGRESSIVE:1.0,1.0,1.0}
+    gradual: ${DSIP_LOAD_FACTOR_GRADUAL:0.33,0.33,0.33}
+    moderate: ${DSIP_LOAD_FACTOR_MODERATE:0.42,0.33,0.24}
+    aggressive: ${DSIP_LOAD_FACTOR_AGGRESSIVE:0.51,0.24,0.24}
 
 logging:
   level:

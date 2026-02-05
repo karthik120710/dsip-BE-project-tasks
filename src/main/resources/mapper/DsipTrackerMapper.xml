@@ -24,6 +24,30 @@
         <result property="createdAt" column="created_at"/>
     </resultMap>
 
+    <!-- Tracker with Stock Result Map -->
+    <resultMap id="TrackerWithStockResultMap" type="com.dsip.backend.entity.DsipTracker">
+        <id property="trackerId" column="tracker_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="stockId" column="stock_id"/>
+        <result property="convictionPeriodYears" column="conviction_period_years"/>
+        <result property="totalCapitalPlanned" column="total_capital_planned"/>
+        <result property="partitionDays" column="partition_days"/>
+        <result property="deploymentStyle" column="deployment_style"/>
+        <result property="baseConvictionScore" column="base_conviction_score"/>
+        <result property="initialInvestedAmount" column="initial_invested_amount"/>
+        <result property="initialSharesHeld" column="initial_shares_held"/>
+        <result property="status" column="status"/>
+        <result property="activePartitionIndex" column="active_partition_index"/>
+        <result property="totalCapitalInvestedSoFar" column="total_capital_invested_so_far"/>
+        <result property="sharesHeldSoFar" column="shares_held_so_far"/>
+        <result property="isFractionalSharesAllowed" column="is_fractional_shares_allowed"/>
+        <result property="createdAt" column="created_at"/>
+        <!-- Stock fields -->
+        <result property="stockSymbol" column="stock_symbol"/>
+        <result property="stockName" column="stock_name"/>
+        <result property="currentPrice" column="last_date_market_closing_price"/>
+    </resultMap>
+
     <!-- Partition Result Map -->
     <resultMap id="DsipPartitionResultMap" type="com.dsip.backend.entity.DsipPartition">
         <id property="partitionId" column="partition_id"/>
@@ -83,6 +107,33 @@
         SELECT * FROM dsip_trackers WHERE user_id = #{userId} ORDER BY created_at DESC
     </select>
 
+    <select id="findAllTrackersWithStockByUserId" resultMap="TrackerWithStockResultMap">
+        SELECT
+            t.tracker_id,
+            t.user_id,
+            t.stock_id,
+            t.conviction_period_years,
+            t.total_capital_planned,
+            t.partition_days,
+            t.deployment_style,
+            t.base_conviction_score,
+            t.initial_invested_amount,
+            t.initial_shares_held,
+            t.status,
+            t.active_partition_index,
+            t.total_capital_invested_so_far,
+            t.shares_held_so_far,
+            t.is_fractional_shares_allowed,
+            t.created_at,
+            s.stock_symbol,
+            s.stock_name,
+            s.last_date_market_closing_price
+        FROM dsip_trackers t
+        INNER JOIN stocks s ON t.stock_id = s.id
+        WHERE t.user_id = #{userId}
+        ORDER BY t.created_at DESC
+    </select>
+
     <select id="existsByUserIdAndStockId" resultType="boolean">
         SELECT EXISTS(SELECT 1 FROM dsip_trackers WHERE user_id = #{userId} AND stock_id = #{stockId})
     </select>
@@ -92,7 +143,10 @@
         SET deployment_style = #{deploymentStyle},
             base_conviction_score = #{baseConvictionScore},
             active_partition_index = #{activePartitionIndex},
-            status = #{status}
+            status = #{status},
+            total_capital_planned = #{totalCapitalPlanned},
+            conviction_period_years = #{convictionPeriodYears},
+            partition_days = #{partitionDays}
         WHERE tracker_id = #{trackerId}
     </update>
 
@@ -121,7 +175,7 @@
             #{trackerId}, #{partitionIndex}, #{expectedPartitionDays},
             #{partitionCapitalAllocated}, #{capitalInvestedSoFar},
             #{noOfSharesBought}, #{successfulGrowthCount},
-            #{partitionEndDate, jdbcType=DATE}, #{status}, #{createdAt}
+            #{partitionEndDate}, #{status}, #{createdAt}
         )
     </insert>
 
@@ -157,12 +211,19 @@
         WHERE partition_id = #{partitionId}
     </update>
 
-    <select id="findPartitionLengths" resultType="java.lang.Integer">
-        SELECT expected_partition_days
+    <select id="findCompletedPartitions" resultMap="DsipPartitionResultMap">
+        SELECT *
         FROM dsip_partitions
         WHERE tracker_id = #{trackerId}
           AND status = 2 /* PartitionStatus.COMPLETED */
         ORDER BY partition_index ASC
+    </select>
+
+    <select id="findPartitionByTrackerIdAndIndex" resultMap="DsipPartitionResultMap">
+        SELECT *
+        FROM dsip_partitions
+        WHERE tracker_id = #{trackerId}
+          AND partition_index = #{partitionIndex}
     </select>
 
     <!-- Execution Operations -->
@@ -187,10 +248,46 @@
         LIMIT #{limit}
     </select>
 
+    <select id="findTrackerDetailsById" resultMap="TrackerWithStockResultMap">
+        SELECT
+            t.tracker_id, t.user_id, t.stock_id, t.conviction_period_years,
+            t.total_capital_planned, t.partition_days, t.deployment_style,
+            t.base_conviction_score, t.initial_invested_amount, t.initial_shares_held,
+            t.status, t.active_partition_index, t.total_capital_invested_so_far,
+            t.shares_held_so_far, t.is_fractional_shares_allowed, t.created_at,
+            s.stock_symbol, s.stock_name, s.last_date_market_closing_price
+        FROM dsip_trackers t
+        JOIN stocks s ON t.stock_id = s.id
+        WHERE t.tracker_id = #{trackerId} AND t.user_id = #{userId}
+    </select>
+
+    <select id="findExecutionHistoryByTrackerId" resultType="com.dsip.backend.dto.TrackerDetailsDto$HistoryItem">
+        SELECT
+            created_at as date,
+            executed_amount as executedAmount,
+            execution_price as executedPrice
+        FROM dsip_executions
+        WHERE tracker_id = #{trackerId}
+        ORDER BY created_at DESC
+        LIMIT #{limit}
+    </select>
+
     <select id="findExecutionsByPartitionId" resultMap="DsipExecutionResultMap">
         SELECT * FROM dsip_executions
         WHERE partition_id = #{partitionId}
         ORDER BY created_at ASC
     </select>
+
+    <delete id="deleteExecutionsByTrackerId">
+        DELETE FROM dsip_executions WHERE tracker_id = #{trackerId}
+    </delete>
+
+    <delete id="deletePartitionsByTrackerId">
+        DELETE FROM dsip_partitions WHERE tracker_id = #{trackerId}
+    </delete>
+
+    <delete id="deleteTrackerById">
+        DELETE FROM dsip_trackers WHERE tracker_id = #{trackerId}
+    </delete>
 
 </mapper>

@@ -7,7 +7,6 @@ import com.dsip.backend.entity.DsipTracker;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -15,44 +14,67 @@ import java.util.UUID;
 @Mapper
 public interface DsipTrackerMapper {
 
-    // Tracker Operations
-    int insertTracker(DsipTracker tracker);
+        // Tracker Operations
+        int insertTracker(DsipTracker tracker);
 
-    Optional<DsipTracker> findTrackerById(@Param("trackerId") Integer trackerId);
+        Optional<DsipTracker> findTrackerById(@Param("trackerId") Integer trackerId);
 
-    List<DsipTracker> findAllTrackersByUserId(@Param("userId") UUID userId, @Param("statuses") List<Integer> statuses);
+        List<DsipTracker> findAllTrackersByUserId(@Param("userId") UUID userId,
+                        @Param("statuses") List<Integer> statuses);
 
-    boolean existsByUserIdAndStockId(@Param("userId") UUID userId, @Param("stockId") Integer stockId);
+        List<DsipTracker> findAllTrackersWithStockByUserId(@Param("userId") UUID userId);
 
-    int updateTracker(DsipTracker tracker);
+        boolean existsByUserIdAndStockId(@Param("userId") UUID userId, @Param("stockId") Integer stockId);
 
-    int updateTrackerStatus(@Param("trackerId") Integer trackerId, @Param("status") int status);
+        int updateTracker(DsipTracker tracker);
 
-    void updateTrackerAggregates(@Param("trackerId") Integer trackerId,
-            @Param("executedAmount") Integer executedAmount,
-            @Param("sharesBought") Integer sharesBought,
-            @Param("activePartitionIndex") Integer activePartitionIndex);
+        int updateTrackerStatus(@Param("trackerId") Integer trackerId, @Param("status") int status);
 
-    // Partition Operations
-    int insertPartition(DsipPartition partition);
+        void updateTrackerAggregates(@Param("trackerId") Integer trackerId,
+                        @Param("executedAmount") Integer executedAmount,
+                        @Param("sharesBought") Integer sharesBought,
+                        @Param("activePartitionIndex") Integer activePartitionIndex);
 
-    List<DsipPartition> findPartitionsByTrackerId(@Param("trackerId") Integer trackerId);
+        // Partition Operations
+        int insertPartition(DsipPartition partition);
 
-    Optional<DsipPartition> findActivePartitionByTrackerId(@Param("trackerId") Integer trackerId);
+        List<DsipPartition> findPartitionsByTrackerId(@Param("trackerId") Integer trackerId);
 
-    void updatePartitionAfterExecution(@Param("partitionId") Integer partitionId,
-            @Param("executedAmount") Integer executedAmount,
-            @Param("sharesBought") Integer sharesBought,
-            @Param("isGrowth") boolean isGrowth);
+        Optional<DsipPartition> findActivePartitionByTrackerId(@Param("trackerId") Integer trackerId);
 
-    void closePartition(@Param("partitionId") Integer partitionId, @Param("endDate") LocalDate endDate);
+        void updatePartitionAfterExecution(@Param("partitionId") Integer partitionId,
+                        @Param("executedAmount") Integer executedAmount,
+                        @Param("sharesBought") Integer sharesBought,
+                        @Param("isGrowth") boolean isGrowth);
 
-    List<Integer> findPartitionLengths(@Param("trackerId") Integer trackerId);
+        void closePartition(@Param("partitionId") Integer partitionId, @Param("endDate") java.time.Instant endDate);
 
-    // Execution Operations
-    int insertExecution(DsipExecution execution);
+        List<DsipPartition> findCompletedPartitions(@Param("trackerId") Integer trackerId);
 
-    List<DsipExecution> findExecutionsByTrackerId(@Param("trackerId") Integer trackerId, @Param("limit") Integer limit);
+        Optional<DsipPartition> findPartitionByTrackerIdAndIndex(@Param("trackerId") Integer trackerId,
+                        @Param("partitionIndex") Integer partitionIndex);
 
-    List<DsipExecution> findExecutionsByPartitionId(@Param("partitionId") Integer partitionId);
+        // Execution Operations
+        int insertExecution(DsipExecution execution);
+
+        List<DsipExecution> findExecutionsByTrackerId(@Param("trackerId") Integer trackerId,
+                        @Param("limit") Integer limit);
+
+        List<com.dsip.backend.dto.TrackerDetailsDto.HistoryItem> findExecutionHistoryByTrackerId(
+                        @Param("trackerId") Integer trackerId, @Param("limit") Integer limit);
+
+        List<DsipExecution> findExecutionsByPartitionId(@Param("partitionId") Integer partitionId);
+
+        // Tracker Details DTO support
+        DsipTracker findTrackerDetailsById(@Param("trackerId") Integer trackerId, @Param("userId") UUID userId);
+
+        List<com.dsip.backend.dto.TrackerDetailsDto.HistoryItem> findExecutionHistoryByTrackerId(
+                        @Param("trackerId") Integer trackerId);
+
+        // Deletion Operations
+        int deleteExecutionsByTrackerId(@Param("trackerId") Integer trackerId);
+
+        int deletePartitionsByTrackerId(@Param("trackerId") Integer trackerId);
+
+        int deleteTrackerById(@Param("trackerId") Integer trackerId);
 }

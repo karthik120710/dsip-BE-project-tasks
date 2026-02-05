@@ -36,4 +36,9 @@ public class DsipTracker {
     private Boolean isFractionalSharesAllowed;
 
     private Instant createdAt;
+
+    // Transient fields from stock join (not persisted)
+    private String stockSymbol;
+    private String stockName;
+    private Double currentPrice;
 }

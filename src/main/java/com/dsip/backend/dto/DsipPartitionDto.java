@@ -8,7 +8,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
-import java.time.LocalDate;
 
 @Data
 @Builder
@@ -41,7 +40,7 @@ public class DsipPartitionDto {
     private Integer successfulGrowthCount;
 
     @JsonProperty("partition_end_date")
-    private LocalDate partitionEndDate;
+    private Instant partitionEndDate;
 
     private Integer status;
 

@@ -29,4 +29,16 @@ public class DsipTrackerUpdateDto {
     @JsonProperty("status")
     @ValidEnum(enumClass = TrackerStatus.class, message = "Invalid status")
     private Integer status;
+
+    @JsonProperty("total_capital_planned")
+    @Min(value = 1, message = "Total capital planned must be at least 1")
+    private Integer totalCapitalPlanned;
+
+    @JsonProperty("conviction_period_years")
+    @Min(value = 1, message = "Conviction period years must be at least 1")
+    private Integer convictionPeriodYears;
+
+    @JsonProperty("partition_days")
+    @Min(value = 1, message = "Partition days must be at least 1")
+    private Integer partitionDays;
 }

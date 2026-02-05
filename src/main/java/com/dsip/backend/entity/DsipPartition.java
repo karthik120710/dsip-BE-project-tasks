@@ -6,7 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
-import java.time.LocalDate;
 
 @Data
 @Builder
@@ -25,7 +24,7 @@ public class DsipPartition {
     private Integer noOfSharesBought;
     private Integer successfulGrowthCount;
 
-    private LocalDate partitionEndDate;
+    private Instant partitionEndDate;
 
     private Integer status;
 

@@ -36,11 +36,11 @@ public class DsipTrackerController {
     }
 
     @GetMapping
-    public ResponseEntity<List<DsipTrackerDto>> getAllTrackers(
+    public ResponseEntity<com.dsip.backend.dto.PortfolioResponseDto> getAllTrackers(
             @CurrentUser User user) {
 
-        List<DsipTrackerDto> trackers = dsipTrackerService.getAllTrackers(user.getId());
-        return ResponseEntity.ok(trackers);
+        com.dsip.backend.dto.PortfolioResponseDto portfolio = dsipTrackerService.getAllTrackers(user.getId());
+        return ResponseEntity.ok(portfolio);
     }
 
     @GetMapping("/{trackerId}")
@@ -54,13 +54,15 @@ public class DsipTrackerController {
     }
 
     @PutMapping("/{trackerId}")
-    public ResponseEntity<Map<String, String>> updateTracker(
+    public ResponseEntity<com.dsip.backend.dto.TrackerDetailsDto> updateTracker(
             @CurrentUser User user,
             @PathVariable Integer trackerId,
             @Valid @RequestBody DsipTrackerUpdateDto request) {
 
         dsipTrackerService.updateTracker(trackerId, user.getId(), request);
-        return ResponseEntity.ok(Map.of("status", "UPDATED"));
+        com.dsip.backend.dto.TrackerDetailsDto details = dsipTrackerService.getTrackerDetailsDto(
+                trackerId, user.getId());
+        return ResponseEntity.ok(details);
     }
 
     @PostMapping("/{trackerId}/execute")
@@ -82,5 +84,25 @@ public class DsipTrackerController {
         List<com.dsip.backend.dto.DsipExecutionDto> executions = dsipTrackerService.getRecentExecutions(trackerId,
                 user.getId(), limit);
         return ResponseEntity.ok(executions);
+    }
+
+    @GetMapping("/{trackerId}/partitions/{partitionIndex}")
+    public ResponseEntity<com.dsip.backend.dto.PartitionDetailsDto> getPartitionDetails(
+            @CurrentUser User user,
+            @PathVariable Integer trackerId,
+            @PathVariable Integer partitionIndex) {
+
+        com.dsip.backend.dto.PartitionDetailsDto details = dsipTrackerService.getPartitionDetails(
+                trackerId, partitionIndex, user.getId());
+        return ResponseEntity.ok(details);
+    }
+
+    @DeleteMapping("/{trackerId}")
+    public ResponseEntity<Map<String, String>> deleteTracker(
+            @CurrentUser User user,
+            @PathVariable Integer trackerId) {
+
+        dsipTrackerService.deleteTracker(trackerId, user.getId());
+        return ResponseEntity.ok(Map.of("message", "Tracker deleted successfully"));
     }
 }
