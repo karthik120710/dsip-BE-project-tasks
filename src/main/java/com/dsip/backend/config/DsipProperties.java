@@ -13,6 +13,9 @@ public class DsipProperties {
 
     private int tradingDaysPerYear;
     private int phaseCount;
+    private double targetReturnPerPartition = 0.20; // 20% default
+    private double returnWeight = 0.8;
+    private double growthWeight = 0.2;
     private LoadFactor loadFactor = new LoadFactor();
 
     @Data

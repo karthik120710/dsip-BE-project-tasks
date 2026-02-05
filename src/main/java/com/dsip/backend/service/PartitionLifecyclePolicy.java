@@ -9,7 +9,6 @@ import com.dsip.backend.model.PartitionEndDecision;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -26,25 +25,42 @@ public class PartitionLifecyclePolicy {
             return PartitionEndDecision.continueRunning();
         }
 
+        int currentPrice = partitionExecutions.get(partitionExecutions.size() - 1).getExecutionPrice();
         long daysElapsed = computeDaysElapsed(partition);
+        int expectedLength = partition.getExpectedPartitionDays();
+
+        // Compute return progress (clamped to 0 minimum for negative returns)
+        double cumulativeReturn = computeCumulativeReturn(partitionExecutions, currentPrice);
+        double targetReturn = dsipProperties.getTargetReturnPerPartition();
+        double returnProgress = Math.max(0.0, Math.min(1.0, cumulativeReturn / targetReturn));
+
+        // Compute growth progress
+        int growthCount = partition.getSuccessfulGrowthCount();
+        int maxGrowthCount = Math.max(1, expectedLength - 1);
+        double growthProgress = Math.min(1.0, (double) growthCount / maxGrowthCount);
+
+        // Combined progress: 0.8 * returnProgress + 0.2 * growthProgress
+        double returnWeight = dsipProperties.getReturnWeight();
+        double growthWeight = dsipProperties.getGrowthWeight();
+        double progress = returnWeight * returnProgress + growthWeight * growthProgress;
+
+        // Capital metrics for kill switches
         double capitalProgress = computeCapitalProgress(partition);
-        double timeProgress = computeTimeProgress(partition, daysElapsed);
-        double cumulativeReturn = computeCumulativeReturn(partitionExecutions);
-        double targetReturn = computeTargetReturn(partition, daysElapsed);
         double remainingCapital = computeRemainingCapital(partition);
         double neutralDailyCapital = computeNeutralDailyCapital(tracker);
 
-        // SUCCESS: progress >= 0.8 AND (time threshold OR capital threshold)
-        if (capitalProgress >= 0.8 && (timeProgress >= 1.0 || capitalProgress >= 1.0)) {
+        // SUCCESS: progress >= 1.0 AND time >= expectedLength
+        if (progress >= 1.0 && daysElapsed >= expectedLength) {
             return PartitionEndDecision.end(EndReason.SUCCESS);
         }
 
-        // KILL_SWITCH_POOR_GROWTH: 80% capital spent, but only 20% of expected progress
-        if (capitalProgress >= 0.8 && cumulativeReturn < targetReturn * 0.2) {
+        // KILL_SWITCH_POOR_GROWTH: 80% capital spent, but progress <= 20%
+        if (capitalProgress >= 0.8 && progress <= 0.2) {
             return PartitionEndDecision.end(EndReason.KILL_SWITCH_POOR_GROWTH);
         }
 
         // KILL_SWITCH_STAGNATION: 2x time elapsed, negative return
+        double timeProgress = (double) daysElapsed / Math.max(1, expectedLength);
         if (timeProgress >= 2.0 && cumulativeReturn < 0) {
             return PartitionEndDecision.end(EndReason.KILL_SWITCH_STAGNATION);
         }
@@ -72,35 +88,25 @@ public class PartitionLifecyclePolicy {
         return (double) partition.getCapitalInvestedSoFar() / partition.getPartitionCapitalAllocated();
     }
 
-    private double computeTimeProgress(DsipPartition partition, long daysElapsed) {
-        if (partition.getExpectedPartitionDays() == 0) {
-            return 0.0;
-        }
-        return (double) daysElapsed / partition.getExpectedPartitionDays();
-    }
-
-    private double computeCumulativeReturn(List<DsipExecution> executions) {
+    private double computeCumulativeReturn(List<DsipExecution> executions, int currentPrice) {
         if (executions == null || executions.isEmpty()) {
             return 0.0;
         }
-        int totalInvested = executions.stream()
-                .mapToInt(DsipExecution::getExecutedAmount)
-                .sum();
+
+        int totalInvested = 0;
+        double totalShares = 0.0;
+
+        for (DsipExecution execution : executions) {
+            totalInvested += execution.getExecutedAmount();
+            totalShares += (double) execution.getExecutedAmount() / execution.getExecutionPrice();
+        }
+
         if (totalInvested == 0) {
             return 0.0;
         }
-        int latestPrice = executions.get(executions.size() - 1).getExecutionPrice();
-        int totalShares = executions.stream()
-                .mapToInt(e -> e.getExecutedAmount() / e.getExecutionPrice())
-                .sum();
-        int currentValue = totalShares * latestPrice;
-        return (double) (currentValue - totalInvested) / totalInvested;
-    }
 
-    private double computeTargetReturn(DsipPartition partition, long daysElapsed) {
-        int tradingDaysPerYear = dsipProperties.getTradingDaysPerYear();
-        double annualizedDays = Math.max(1, daysElapsed);
-        return 0.10 * (annualizedDays / tradingDaysPerYear);
+        double currentValue = totalShares * currentPrice;
+        return (currentValue - totalInvested) / totalInvested;
     }
 
     private double computeRemainingCapital(DsipPartition partition) {

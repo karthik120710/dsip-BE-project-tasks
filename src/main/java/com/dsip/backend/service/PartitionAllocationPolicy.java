@@ -69,7 +69,7 @@ public class PartitionAllocationPolicy {
     }
 
     private int computeAllocatedCapital(DsipTracker tracker, int totalPartitions, double phaseWeight) {
-        double neutralCapital = (double) tracker.getTotalCapitalPlanned() / totalPartitions;
-        return (int) Math.round(neutralCapital * phaseWeight);
+        int partitionsPerPhase = Math.max(1, totalPartitions / dsipProperties.getPhaseCount());
+        return (int) Math.round((double) tracker.getTotalCapitalPlanned() * phaseWeight / partitionsPerPhase);
     }
 }
