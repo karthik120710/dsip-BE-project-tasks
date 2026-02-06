@@ -28,7 +28,7 @@ public class DsipPartitionDto {
     private Integer expectedPartitionDays;
 
     @JsonProperty("partition_capital_allocated")
-    private Integer partitionCapitalAllocated;
+    private Double partitionCapitalAllocated;
 
     @JsonProperty("capital_invested_so_far")
     private Double capitalInvestedSoFar;

@@ -18,7 +18,7 @@ public class DsipPartition {
     private Integer partitionIndex;
 
     private Integer expectedPartitionDays;
-    private Integer partitionCapitalAllocated;
+    private Double partitionCapitalAllocated;
 
     private Double capitalInvestedSoFar;
     private Double noOfSharesBought;

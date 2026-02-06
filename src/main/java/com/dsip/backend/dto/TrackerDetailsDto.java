@@ -23,7 +23,7 @@ public class TrackerDetailsDto {
     private Integer convictionPeriodYears;
 
     @JsonProperty("total_capital_planned")
-    private Integer totalCapitalPlanned;
+    private Double totalCapitalPlanned;
 
     @JsonProperty("partition_days")
     private Integer partitionDays;

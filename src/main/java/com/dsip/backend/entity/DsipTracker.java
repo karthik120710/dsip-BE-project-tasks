@@ -19,14 +19,14 @@ public class DsipTracker {
     private Integer stockId;
 
     private Integer convictionPeriodYears;
-    private Integer totalCapitalPlanned;
+    private Double totalCapitalPlanned;
 
     private Integer partitionDays;
     private Integer deploymentStyle;
     private Integer baseConvictionScore;
 
-    private Integer initialInvestedAmount;
-    private Integer initialSharesHeld;
+    private Double initialInvestedAmount;
+    private Double initialSharesHeld;
 
     private Integer status;
 

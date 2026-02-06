@@ -32,7 +32,7 @@ public class DsipTrackerUpdateDto {
 
     @JsonProperty("total_capital_planned")
     @Min(value = 1, message = "Total capital planned must be at least 1")
-    private Integer totalCapitalPlanned;
+    private Double totalCapitalPlanned;
 
     @JsonProperty("conviction_period_years")
     @Min(value = 1, message = "Conviction period years must be at least 1")

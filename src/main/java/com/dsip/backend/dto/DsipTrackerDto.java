@@ -45,12 +45,12 @@ public class DsipTrackerDto {
     @JsonProperty("initial_invested_amount")
     @Builder.Default
     @Min(value = 0, message = "Initial invested amount cannot be negative")
-    private Integer initialInvestedAmount = 0;
+    private Double initialInvestedAmount = 0.0;
 
     @JsonProperty("initial_shares_held")
     @Builder.Default
     @Min(value = 0, message = "Initial shares held cannot be negative")
-    private Integer initialSharesHeld = 0;
+    private Double initialSharesHeld = 0.0;
 
     @JsonProperty("conviction_period_years")
     @NotNull(message = "Conviction period years is required")
@@ -60,7 +60,7 @@ public class DsipTrackerDto {
     @JsonProperty("total_capital_planned")
     @NotNull(message = "Total capital planned is required")
     @Min(value = 1, message = "Total capital planned must be at least 1")
-    private Integer totalCapitalPlanned;
+    private Double totalCapitalPlanned;
 
     @JsonProperty("partition_days")
     @NotNull(message = "Partition days is required")

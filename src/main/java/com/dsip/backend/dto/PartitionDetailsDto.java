@@ -17,7 +17,7 @@ public class PartitionDetailsDto {
     private Integer status;
 
     @JsonProperty("capital_allocated")
-    private Integer capitalAllocated;
+    private Double capitalAllocated;
 
     @JsonProperty("capital_deployed")
     private Double capitalDeployed;

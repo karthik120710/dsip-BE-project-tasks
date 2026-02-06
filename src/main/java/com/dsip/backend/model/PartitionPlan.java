@@ -7,5 +7,5 @@ public class PartitionPlan {
     int partitionIndex;
     int expectedLengthDays;
     int phaseIndex;
-    int allocatedCapital;
+    double allocatedCapital;
 }
