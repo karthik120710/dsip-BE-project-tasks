@@ -20,8 +20,8 @@ public class DsipExecution {
     private Integer lockInPercentage;
     private Integer convictionOverride;
 
-    private Integer executedAmount;
-    private Integer executionPrice;
+    private Double executedAmount;
+    private Double executionPrice;
 
     private Instant createdAt;
 }

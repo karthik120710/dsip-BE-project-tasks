@@ -28,10 +28,10 @@ public class DsipExecutionDto {
     private Integer convictionOverride;
 
     @JsonProperty("executed_amount")
-    private Integer executedAmount;
+    private Double executedAmount;
 
     @JsonProperty("execution_price")
-    private Integer executionPrice;
+    private Double executionPrice;
 
     @JsonProperty("created_at")
     private java.time.Instant createdAt;

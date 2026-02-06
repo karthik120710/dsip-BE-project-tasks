@@ -31,10 +31,10 @@ public class DsipPartitionDto {
     private Integer partitionCapitalAllocated;
 
     @JsonProperty("capital_invested_so_far")
-    private Integer capitalInvestedSoFar;
+    private Double capitalInvestedSoFar;
 
     @JsonProperty("no_of_shares_bought")
-    private Integer noOfSharesBought;
+    private Double noOfSharesBought;
 
     @JsonProperty("successful_growth_count")
     private Integer successfulGrowthCount;

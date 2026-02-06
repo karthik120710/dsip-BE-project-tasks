@@ -31,8 +31,8 @@ public class DsipTracker {
     private Integer status;
 
     private Integer activePartitionIndex;
-    private Integer totalCapitalInvestedSoFar;
-    private Integer sharesHeldSoFar;
+    private Double totalCapitalInvestedSoFar;
+    private Double sharesHeldSoFar;
     private Boolean isFractionalSharesAllowed;
 
     private Instant createdAt;

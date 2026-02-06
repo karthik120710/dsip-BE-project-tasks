@@ -28,11 +28,11 @@ public class DsipExecutionRequestDto {
 
     @JsonProperty("executed_amount")
     @NotNull(message = "Executed amount is required")
-    @Min(value = 1, message = "Executed amount must be at least 1")
-    private Integer executedAmount;
+    @Min(value = 1, message = "Executed amount must be positive")
+    private Double executedAmount;
 
     @JsonProperty("execution_price")
     @NotNull(message = "Execution price is required")
-    @Min(value = 1, message = "Execution price must be at least 1 cent")
-    private Integer executionPrice;
+    @Min(value = 1, message = "Execution price must be positive")
+    private Double executionPrice;
 }

@@ -36,6 +36,12 @@ public class FinancialCalculator {
         return currentPrice * quantity;
     }
 
+    public double calculateMarketValue(double currentPrice, Double quantity) {
+        if (quantity == null)
+            return 0.0;
+        return currentPrice * quantity;
+    }
+
     public double round(double value, int places) {
         if (places < 0)
             throw new IllegalArgumentException();

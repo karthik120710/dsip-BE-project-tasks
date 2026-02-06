@@ -19,7 +19,7 @@ public class TrackerSummaryDto {
     private String name;
 
     @JsonProperty("total_capital_invested_so_far")
-    private Integer totalCapitalInvestedSoFar;
+    private Double totalCapitalInvestedSoFar;
 
     @JsonProperty("total_capital_planned")
     private Integer totalCapitalPlanned;
@@ -28,7 +28,7 @@ public class TrackerSummaryDto {
     private Double netProfitPercentage;
 
     @JsonProperty("dsip_total_capital_invested_so_far")
-    private Integer dsipTotalInvestedCapital;
+    private Double dsipTotalInvestedCapital;
 
     @JsonProperty("dsip_net_profit_percentage")
     private Double dsipNetProfitPercentage;

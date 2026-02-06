@@ -58,8 +58,8 @@ public class DsipTrackerService {
                                 .initialSharesHeld(dto.getInitialSharesHeld())
                                 .status(TrackerStatus.ACTIVE.getValue())
                                 .activePartitionIndex(1)
-                                .totalCapitalInvestedSoFar(0)
-                                .sharesHeldSoFar(0)
+                                .totalCapitalInvestedSoFar(0.0)
+                                .sharesHeldSoFar(0.0)
                                 .isFractionalSharesAllowed(
                                                 dto.getIsFractionalSharesAllowed() != null
                                                                 ? dto.getIsFractionalSharesAllowed()
@@ -77,8 +77,8 @@ public class DsipTrackerService {
                                 .partitionIndex(plan.getPartitionIndex())
                                 .expectedPartitionDays(plan.getExpectedLengthDays())
                                 .partitionCapitalAllocated(plan.getAllocatedCapital())
-                                .capitalInvestedSoFar(0)
-                                .noOfSharesBought(0)
+                                .capitalInvestedSoFar(0.0)
+                                .noOfSharesBought(0.0)
                                 .successfulGrowthCount(0)
                                 .status(PartitionStatus.ACTIVE.getValue())
                                 .createdAt(Instant.now())
@@ -109,8 +109,9 @@ public class DsipTrackerService {
                         }
 
                         // Calculate total shares and invested amounts
-                        int totalShares = tracker.getSharesHeldSoFar() + tracker.getInitialSharesHeld();
-                        int totalInvested = tracker.getTotalCapitalInvestedSoFar() + tracker.getInitialInvestedAmount();
+                        double totalShares = tracker.getSharesHeldSoFar() + tracker.getInitialSharesHeld();
+                        double totalInvested = tracker.getTotalCapitalInvestedSoFar()
+                                        + tracker.getInitialInvestedAmount();
 
                         // Calculate market values
                         double trackerMarketValue = financialCalculator.calculateMarketValue(currentPrice, totalShares);
@@ -176,8 +177,8 @@ public class DsipTrackerService {
                 double currentPrice = tracker.getCurrentPrice() != null ? tracker.getCurrentPrice() : 0.0;
 
                 // --- Overall Performance (Includes Initials) ---
-                int totalShares = tracker.getSharesHeldSoFar() + tracker.getInitialSharesHeld();
-                int totalInvested = tracker.getTotalCapitalInvestedSoFar() + tracker.getInitialInvestedAmount();
+                double totalShares = tracker.getSharesHeldSoFar() + tracker.getInitialSharesHeld();
+                double totalInvested = tracker.getTotalCapitalInvestedSoFar() + tracker.getInitialInvestedAmount();
 
                 double currentTotalValue = financialCalculator.calculateMarketValue(currentPrice, totalShares);
                 Double netProfitPercentage = financialCalculator.calculateProfitPercentage(currentTotalValue,
@@ -186,7 +187,7 @@ public class DsipTrackerService {
                 // --- DSIP Specific Performance (Excludes Initials) ---
                 double dsipTotalMarketValue = financialCalculator.calculateMarketValue(currentPrice,
                                 tracker.getSharesHeldSoFar());
-                Integer dsipTotalInvestedCapital = tracker.getTotalCapitalInvestedSoFar();
+                Double dsipTotalInvestedCapital = tracker.getTotalCapitalInvestedSoFar();
                 Double dsipTotalNetProfitPercentage = financialCalculator.calculateProfitPercentage(
                                 dsipTotalMarketValue,
                                 dsipTotalInvestedCapital);
@@ -200,13 +201,16 @@ public class DsipTrackerService {
                 DsipPartition activePartition = dsipTrackerMapper.findActivePartitionByTrackerId(trackerId)
                                 .orElse(null);
                 com.dsip.backend.dto.TrackerDetailsDto.LiveInvestmentCycle liveCycle = new com.dsip.backend.dto.TrackerDetailsDto.LiveInvestmentCycle(
-                                0, 0.0, 0.0);
+                                0.0, 0.0, 0.0);
 
                 if (activePartition != null) {
-                        Integer capitalDeployedInCycle = activePartition.getCapitalInvestedSoFar();
+                        Double capitalDeployedInCycle = activePartition.getCapitalInvestedSoFar() != null
+                                        ? activePartition.getCapitalInvestedSoFar()
+                                        : 0.0;
                         Double partitionProgress = 0.0;
-                        if (activePartition.getPartitionCapitalAllocated() > 0) {
-                                partitionProgress = ((double) capitalDeployedInCycle
+                        if (activePartition.getPartitionCapitalAllocated() > 0
+                                        && capitalDeployedInCycle > 0) {
+                                partitionProgress = (capitalDeployedInCycle
                                                 / activePartition.getPartitionCapitalAllocated())
                                                 * 100;
                         }
@@ -390,8 +394,12 @@ public class DsipTrackerService {
 
                 Double netProfitPercentage = 0.0;
                 Double currentMarketValue = 0.0;
-                int sharesBought = partition.getNoOfSharesBought() != null ? partition.getNoOfSharesBought() : 0;
-                int capitalInvested = partition.getCapitalInvestedSoFar() != null ? partition.getCapitalInvestedSoFar() : 0;
+                Double sharesBought = partition.getNoOfSharesBought() != null
+                                ? partition.getNoOfSharesBought()
+                                : 0.0;
+                double capitalInvested = partition.getCapitalInvestedSoFar() != null
+                                ? partition.getCapitalInvestedSoFar()
+                                : 0.0;
 
                 if (capitalInvested > 0) {
                         com.dsip.backend.entity.Stock stock = stockMapper.findById(Long.valueOf(tracker.getStockId()))
@@ -408,21 +416,17 @@ public class DsipTrackerService {
                                 .partitionIndex(partition.getPartitionIndex())
                                 .status(partition.getStatus())
                                 .capitalAllocated(partition.getPartitionCapitalAllocated())
-                                .capitalDeployed((double) capitalInvested)
+                                .capitalDeployed(capitalInvested)
                                 .sharesBought(sharesBought)
                                 .currentMarketValue(currentMarketValue)
                                 .netProfitPercentage(netProfitPercentage)
-                                .growthCount(partition.getSuccessfulGrowthCount() != null ? partition.getSuccessfulGrowthCount() : 0)
+                                .growthCount(partition.getSuccessfulGrowthCount() != null
+                                                ? partition.getSuccessfulGrowthCount()
+                                                : 0)
                                 .expectedDays(partition.getExpectedPartitionDays())
                                 .startDate(partition.getCreatedAt())
                                 .endDate(partition.getPartitionEndDate())
                                 .build();
         }
 
-        private DsipTrackerDto toTrackerDto(DsipTracker tracker) {
-                String stockSymbol = stockMapper.findById(tracker.getStockId().longValue())
-                                .map(Stock::getStockSymbol)
-                                .orElse(null);
-                return DsipTrackerDto.fromEntity(tracker, stockSymbol);
-        }
 }

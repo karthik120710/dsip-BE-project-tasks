@@ -76,10 +76,10 @@ public class TrackerDetailsDto {
         private Instant date;
 
         @JsonProperty("executed_amount")
-        private Integer executedAmount;
+        private Double executedAmount;
 
         @JsonProperty("executed_price")
-        private Integer executedPrice;
+        private Double executedPrice;
     }
 
     @Data
@@ -88,7 +88,7 @@ public class TrackerDetailsDto {
     @AllArgsConstructor
     public static class LiveInvestmentCycle {
         @JsonProperty("total_capital_invested_so_far")
-        private Integer totalCapitalInvestedSoFar;
+        private Double totalCapitalInvestedSoFar;
 
         @JsonProperty("partition_progress")
         private Double partitionProgress;

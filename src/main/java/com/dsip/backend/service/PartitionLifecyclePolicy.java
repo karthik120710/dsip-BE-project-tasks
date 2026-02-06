@@ -20,12 +20,13 @@ public class PartitionLifecyclePolicy {
 
     private final DsipProperties dsipProperties;
 
-    public PartitionEndDecision evaluate(DsipTracker tracker, DsipPartition partition, List<DsipExecution> partitionExecutions) {
+    public PartitionEndDecision evaluate(DsipTracker tracker, DsipPartition partition,
+            List<DsipExecution> partitionExecutions) {
         if (partitionExecutions == null || partitionExecutions.isEmpty()) {
             return PartitionEndDecision.continueRunning();
         }
 
-        int currentPrice = partitionExecutions.get(partitionExecutions.size() - 1).getExecutionPrice();
+        Double currentPrice = partitionExecutions.get(partitionExecutions.size() - 1).getExecutionPrice();
         long daysElapsed = computeDaysElapsed(partition);
         int expectedLength = partition.getExpectedPartitionDays();
 
@@ -85,23 +86,29 @@ public class PartitionLifecyclePolicy {
         if (partition.getPartitionCapitalAllocated() == 0) {
             return 0.0;
         }
-        return (double) partition.getCapitalInvestedSoFar() / partition.getPartitionCapitalAllocated();
+        Double invested = partition.getCapitalInvestedSoFar() != null ? partition.getCapitalInvestedSoFar()
+                : 0.0;
+        return invested / partition.getPartitionCapitalAllocated();
     }
 
-    private double computeCumulativeReturn(List<DsipExecution> executions, int currentPrice) {
+    private double computeCumulativeReturn(List<DsipExecution> executions, Double currentPrice) {
         if (executions == null || executions.isEmpty()) {
             return 0.0;
         }
 
-        int totalInvested = 0;
+        double totalInvested = 0.0;
         double totalShares = 0.0;
 
         for (DsipExecution execution : executions) {
-            totalInvested += execution.getExecutedAmount();
-            totalShares += (double) execution.getExecutedAmount() / execution.getExecutionPrice();
+            Double amount = execution.getExecutedAmount() != null ? execution.getExecutedAmount() : 0.0;
+            Double price = execution.getExecutionPrice() != null ? execution.getExecutionPrice() : 0.0;
+            totalInvested += amount;
+            if (price > 0) {
+                totalShares += amount / price;
+            }
         }
 
-        if (totalInvested == 0) {
+        if (totalInvested == 0.0) {
             return 0.0;
         }
 
@@ -110,7 +117,9 @@ public class PartitionLifecyclePolicy {
     }
 
     private double computeRemainingCapital(DsipPartition partition) {
-        return partition.getPartitionCapitalAllocated() - partition.getCapitalInvestedSoFar();
+        Double invested = partition.getCapitalInvestedSoFar() != null ? partition.getCapitalInvestedSoFar()
+                : 0.0;
+        return partition.getPartitionCapitalAllocated() - invested;
     }
 
     private double computeNeutralDailyCapital(DsipTracker tracker) {

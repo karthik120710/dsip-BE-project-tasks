@@ -31,8 +31,8 @@ public interface DsipTrackerMapper {
         int updateTrackerStatus(@Param("trackerId") Integer trackerId, @Param("status") int status);
 
         void updateTrackerAggregates(@Param("trackerId") Integer trackerId,
-                        @Param("executedAmount") Integer executedAmount,
-                        @Param("sharesBought") Integer sharesBought,
+                        @Param("executedAmount") Double executedAmount,
+                        @Param("sharesBought") Double sharesBought,
                         @Param("activePartitionIndex") Integer activePartitionIndex);
 
         // Partition Operations
@@ -43,8 +43,8 @@ public interface DsipTrackerMapper {
         Optional<DsipPartition> findActivePartitionByTrackerId(@Param("trackerId") Integer trackerId);
 
         void updatePartitionAfterExecution(@Param("partitionId") Integer partitionId,
-                        @Param("executedAmount") Integer executedAmount,
-                        @Param("sharesBought") Integer sharesBought,
+                        @Param("executedAmount") Double executedAmount,
+                        @Param("sharesBought") Double sharesBought,
                         @Param("isGrowth") boolean isGrowth);
 
         void closePartition(@Param("partitionId") Integer partitionId, @Param("endDate") java.time.Instant endDate);

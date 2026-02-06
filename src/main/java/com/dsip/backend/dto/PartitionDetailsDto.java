@@ -23,7 +23,7 @@ public class PartitionDetailsDto {
     private Double capitalDeployed;
 
     @JsonProperty("shares_bought")
-    private Integer sharesBought;
+    private Double sharesBought;
 
     @JsonProperty("current_market_value")
     private Double currentMarketValue;

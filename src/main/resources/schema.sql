@@ -77,8 +77,8 @@ CREATE TABLE IF NOT EXISTS dsip_trackers (
     initial_shares_held INTEGER NOT NULL,
     status SMALLINT NOT NULL,
     active_partition_index SMALLINT,
-    total_capital_invested_so_far INTEGER NOT NULL DEFAULT 0,
-    shares_held_so_far INTEGER NOT NULL DEFAULT 0,
+    total_capital_invested_so_far DOUBLE PRECISION NOT NULL DEFAULT 0,
+    shares_held_so_far DOUBLE PRECISION NOT NULL DEFAULT 0,
     is_fractional_shares_allowed BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
@@ -92,8 +92,8 @@ CREATE TABLE IF NOT EXISTS dsip_partitions (
     partition_index SMALLINT NOT NULL,
     expected_partition_days SMALLINT NOT NULL,
     partition_capital_allocated INTEGER NOT NULL,
-    capital_invested_so_far INTEGER NOT NULL DEFAULT 0,
-    no_of_shares_bought INTEGER NOT NULL DEFAULT 0,
+    capital_invested_so_far DOUBLE PRECISION NOT NULL DEFAULT 0,
+    no_of_shares_bought DOUBLE PRECISION NOT NULL DEFAULT 0,
     successful_growth_count SMALLINT NOT NULL DEFAULT 0,
     partition_end_date TIMESTAMP WITH TIME ZONE,
     status SMALLINT NOT NULL,
@@ -112,8 +112,8 @@ CREATE TABLE IF NOT EXISTS dsip_executions (
     partition_id INTEGER NOT NULL REFERENCES dsip_partitions (partition_id),
     lock_in_percentage SMALLINT NOT NULL,
     conviction_override SMALLINT,
-    executed_amount INTEGER NOT NULL,
-    execution_price INTEGER NOT NULL,
+    executed_amount DOUBLE PRECISION NOT NULL,
+    execution_price DOUBLE PRECISION NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 

@@ -33,10 +33,10 @@ public class DsipTrackerDto {
     private Integer activePartitionIndex;
 
     @JsonProperty("total_capital_invested_so_far")
-    private Integer totalCapitalInvestedSoFar;
+    private Double totalCapitalInvestedSoFar;
 
     @JsonProperty("shares_held_so_far")
-    private Integer sharesHeldSoFar;
+    private Double sharesHeldSoFar;
 
     @JsonProperty("is_fractional_shares_allowed")
     @Builder.Default
