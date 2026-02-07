@@ -30,6 +30,7 @@ public class ExecutionService {
         private final PartitionAllocationPolicy allocationPolicy;
         private final PartitionLifecyclePolicy lifecyclePolicy;
         private final com.dsip.backend.util.FinancialCalculator financialCalculator;
+        private final DsipTrackerService dsipTrackerService;
 
         @Transactional
         public Map<String, Object> executeTrade(Integer trackerId, UUID userId, DsipExecutionRequestDto dto) {
@@ -53,6 +54,8 @@ public class ExecutionService {
                         lastExecutionPrice = recentExecutions.get(0).getExecutedPrice();
                 }
 
+                double latestMarketPrice = dsipTrackerService.getLatestMarketPrice(trackerId);
+
                 // 4. Insert Execution
                 DsipExecution execution = DsipExecution.builder()
                                 .trackerId(trackerId)
@@ -67,15 +70,13 @@ public class ExecutionService {
                 dsipTrackerMapper.insertExecution(execution);
 
                 // Apply execution to partition (in-memory)
-                applyExecutionToPartition(activePartition, dto, lastExecutionPrice, tracker.getCurrentPrice());
+                applyExecutionToPartition(activePartition, dto, lastExecutionPrice, latestMarketPrice);
                 // Apply execution to tracker (in-memory)
                 applyExecutionToTracker(tracker, dto, lastExecutionPrice);
 
                 // 6. Evaluate Lifecycle
-                List<DsipExecution> partitionExecutions = dsipTrackerMapper.findExecutionsByPartitionId(
-                                activePartition.getPartitionId());
 
-                PartitionEndDecision decision = lifecyclePolicy.evaluate(tracker, activePartition, partitionExecutions);
+                PartitionEndDecision decision = lifecyclePolicy.evaluate(tracker, activePartition, latestMarketPrice);
 
                 boolean partitionCompleted = false;
                 if (decision.isShouldEnd()) {

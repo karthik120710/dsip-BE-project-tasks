@@ -89,6 +89,41 @@ public class DsipTrackerService {
                 return DsipTrackerDto.fromEntity(tracker, stock.getStockSymbol());
         }
 
+        /**
+         * Gets the latest market price for a tracker by comparing the stock's closing
+         * price
+         * with the latest execution price, using whichever is more recent.
+         * 
+         * @param trackerId The tracker ID
+         * @return The most recent market price
+         */
+        public double getLatestMarketPrice(Integer trackerId) {
+                DsipTracker tracker = dsipTrackerMapper.findTrackerById(trackerId)
+                                .orElseThrow(() -> new TrackerNotFoundException(trackerId));
+
+                com.dsip.backend.entity.Stock stock = stockMapper.findById(Long.valueOf(tracker.getStockId()))
+                                .orElseThrow(() -> new StockNotFoundException(String.valueOf(tracker.getStockId())));
+                // Get the latest execution for this tracker
+                List<com.dsip.backend.entity.DsipExecution> latestExecutions = dsipTrackerMapper
+                                .findExecutionsByTrackerId(trackerId, 1);
+                // Determine which price to use based on recency
+                if (!latestExecutions.isEmpty()) {
+                        com.dsip.backend.entity.DsipExecution latestExecution = latestExecutions.get(0);
+                        // Compare timestamps: execution created_at vs stock last_updated_date
+                        if (stock.getLastUpdatedDate() != null &&
+                                        stock.getLastUpdatedDate().isAfter(latestExecution.getCreatedAt())) {
+                                // Stock price is more recent
+                                return stock.getLastDateMarketClosingPrice();
+                        } else {
+                                // Execution price is more recent
+                                return latestExecution.getExecutionPrice();
+                        }
+                } else {
+                        // No executions, use stock price
+                        return stock.getLastDateMarketClosingPrice();
+                }
+        }
+
         public com.dsip.backend.dto.PortfolioResponseDto getAllTrackers(UUID userId) {
                 List<DsipTracker> trackers = dsipTrackerMapper.findAllTrackersWithStockByUserId(userId);
 
@@ -101,7 +136,7 @@ public class DsipTrackerService {
                 List<com.dsip.backend.dto.TrackerSummaryDto> trackerSummaries = new java.util.ArrayList<>();
 
                 for (DsipTracker tracker : trackers) {
-                        Double currentPrice = tracker.getCurrentPrice();
+                        Double currentPrice = getLatestMarketPrice(tracker.getTrackerId());
 
                         // Skip trackers without price data
                         if (currentPrice == null || currentPrice == 0.0) {
@@ -174,7 +209,7 @@ public class DsipTrackerService {
                         throw new UnauthorizedTrackerAccessException(trackerId, userId);
                 }
 
-                double currentPrice = tracker.getCurrentPrice() != null ? tracker.getCurrentPrice() : 0.0;
+                double currentPrice = getLatestMarketPrice(trackerId);
 
                 // --- Overall Performance (Includes Initials) ---
                 double totalShares = tracker.getSharesHeldSoFar() + tracker.getInitialSharesHeld();
@@ -403,12 +438,9 @@ public class DsipTrackerService {
                                 : 0.0;
 
                 if (capitalInvested > 0) {
-                        com.dsip.backend.entity.Stock stock = stockMapper.findById(Long.valueOf(tracker.getStockId()))
-                                        .orElseThrow(() -> new StockNotFoundException(
-                                                        String.valueOf(tracker.getStockId())));
+                        double marketPrice = getLatestMarketPrice(trackerId);
 
-                        currentMarketValue = financialCalculator.calculateMarketValue(
-                                        stock.getLastDateMarketClosingPrice(), sharesBought);
+                        currentMarketValue = financialCalculator.calculateMarketValue(marketPrice, sharesBought);
                         netProfitPercentage = financialCalculator.calculateProfitPercentage(currentMarketValue,
                                         capitalInvested);
                 }
