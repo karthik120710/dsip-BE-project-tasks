@@ -73,4 +73,45 @@ public class FinancialCalculator {
             return (values.get(size / 2 - 1) + values.get(size / 2)) / 2;
         }
     }
+
+    public double calculateSharesBought(Double executionAmount, Double executionPrice) {
+        if (executionPrice == null || executionPrice <= 0 || executionAmount == null) {
+            return 0.0;
+        }
+        return executionAmount / executionPrice;
+    }
+
+    public double calculateAverageCost(com.dsip.backend.entity.DsipPartition partition) {
+        if (partition == null || partition.getNoOfSharesBought() == null || partition.getNoOfSharesBought() == 0
+                || partition.getCapitalInvestedSoFar() == null) {
+            return 0.0;
+        }
+        return partition.getCapitalInvestedSoFar() / partition.getNoOfSharesBought();
+    }
+
+    public boolean calculateIsGrowth(com.dsip.backend.entity.DsipPartition partition, Double currentExecutionPrice,
+            Double lastExecutionPrice, Double marketPrice) {
+        if (partition.getCapitalInvestedSoFar() == null ||
+                partition.getCapitalInvestedSoFar() == 0.0 ||
+                partition.getNoOfSharesBought() == null ||
+                partition.getNoOfSharesBought() == 0.0) {
+            return false;
+        }
+
+        if (marketPrice == null || marketPrice <= 0) {
+            return false;
+        }
+
+        // If this is the first execution (lastExecutionPrice is null or 0), we can't
+        // really determine growth momentum from previous execution.
+        // Assuming false for safety/strictness.
+        if (lastExecutionPrice == null || lastExecutionPrice <= 0) {
+            return false;
+        }
+
+        Double avgCost = calculateAverageCost(partition);
+
+        // Logic: Momentum (Current > Last) AND Profitability (Market > AvgCost)
+        return (currentExecutionPrice > lastExecutionPrice) && (marketPrice > avgCost);
+    }
 }

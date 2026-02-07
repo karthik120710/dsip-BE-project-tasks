@@ -197,8 +197,9 @@ public class DsipTrackerService {
                                 .findExecutionHistoryByTrackerId(trackerId, 6);
 
                 // --- Live Investment Cycle ---
-                // Fetch active partition if exists
-                DsipPartition activePartition = dsipTrackerMapper.findActivePartitionByTrackerId(trackerId)
+                // Fetch active partition using tracker's active partition index
+                DsipPartition activePartition = dsipTrackerMapper
+                                .findPartitionByTrackerIdAndIndex(trackerId, tracker.getActivePartitionIndex())
                                 .orElse(null);
                 com.dsip.backend.dto.TrackerDetailsDto.LiveInvestmentCycle liveCycle = new com.dsip.backend.dto.TrackerDetailsDto.LiveInvestmentCycle(
                                 0.0, 0.0, 0.0);

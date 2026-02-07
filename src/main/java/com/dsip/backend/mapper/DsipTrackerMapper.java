@@ -42,12 +42,7 @@ public interface DsipTrackerMapper {
 
         Optional<DsipPartition> findActivePartitionByTrackerId(@Param("trackerId") Integer trackerId);
 
-        void updatePartitionAfterExecution(@Param("partitionId") Integer partitionId,
-                        @Param("executedAmount") Double executedAmount,
-                        @Param("sharesBought") Double sharesBought,
-                        @Param("isGrowth") boolean isGrowth);
-
-        void closePartition(@Param("partitionId") Integer partitionId, @Param("endDate") java.time.Instant endDate);
+        void updatePartition(DsipPartition partition);
 
         List<DsipPartition> findCompletedPartitions(@Param("trackerId") Integer trackerId);
 

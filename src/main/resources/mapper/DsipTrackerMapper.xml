@@ -146,7 +146,9 @@
             status = #{status},
             total_capital_planned = #{totalCapitalPlanned},
             conviction_period_years = #{convictionPeriodYears},
-            partition_days = #{partitionDays}
+            partition_days = #{partitionDays},
+            total_capital_invested_so_far = #{totalCapitalInvestedSoFar},
+            shares_held_so_far = #{sharesHeldSoFar}
         WHERE tracker_id = #{trackerId}
     </update>
 
@@ -196,18 +198,13 @@
         LIMIT 1
     </select>
 
-    <update id="updatePartitionAfterExecution">
+    <update id="updatePartition" parameterType="com.dsip.backend.entity.DsipPartition">
         UPDATE dsip_partitions
-        SET capital_invested_so_far = capital_invested_so_far + #{executedAmount},
-            no_of_shares_bought = no_of_shares_bought + #{sharesBought},
-            successful_growth_count = successful_growth_count + CASE WHEN #{isGrowth} THEN 1 ELSE 0 END
-        WHERE partition_id = #{partitionId}
-    </update>
-
-    <update id="closePartition">
-        UPDATE dsip_partitions
-        SET status = 2, /* PartitionStatus.COMPLETED */
-            partition_end_date = #{endDate}
+        SET capital_invested_so_far = #{capitalInvestedSoFar},
+            no_of_shares_bought = #{noOfSharesBought},
+            successful_growth_count = #{successfulGrowthCount},
+            status = #{status},
+            partition_end_date = #{partitionEndDate}
         WHERE partition_id = #{partitionId}
     </update>
 
