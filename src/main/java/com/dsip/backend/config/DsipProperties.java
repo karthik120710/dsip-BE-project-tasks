@@ -19,6 +19,9 @@ public class DsipProperties {
     private LoadFactor loadFactor = new LoadFactor();
 
     @Data
+    /**
+     * Todo: check if this is right.
+     */
     public static class LoadFactor {
         private List<Double> gradual = List.of(0.5, 1.0, 1.5);
         private List<Double> moderate = List.of(0.8, 1.0, 1.2);

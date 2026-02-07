@@ -18,7 +18,7 @@ public class DsipTracker {
 
     private Integer stockId;
 
-    private Integer convictionPeriodYears;
+    private Double convictionPeriodYears;
     private Double totalCapitalPlanned;
 
     private Integer partitionDays;

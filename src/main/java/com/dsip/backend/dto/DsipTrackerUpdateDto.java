@@ -36,7 +36,7 @@ public class DsipTrackerUpdateDto {
 
     @JsonProperty("conviction_period_years")
     @Min(value = 1, message = "Conviction period years must be at least 1")
-    private Integer convictionPeriodYears;
+    private Double convictionPeriodYears;
 
     @JsonProperty("partition_days")
     @Min(value = 1, message = "Partition days must be at least 1")

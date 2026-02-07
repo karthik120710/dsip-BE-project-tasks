@@ -17,7 +17,7 @@ public class DsipExecution {
     private Integer trackerId;
     private Integer partitionId;
 
-    private Integer lockInPercentage;
+    private Double lockInPercentage;
     private Integer convictionOverride;
 
     private Double executedAmount;

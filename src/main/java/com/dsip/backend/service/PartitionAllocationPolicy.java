@@ -45,8 +45,8 @@ public class PartitionAllocationPolicy {
 
     private int computeTotalPartitions(DsipTracker tracker) {
         int tradingDaysPerYear = dsipProperties.getTradingDaysPerYear();
-        int totalTradingDays = tracker.getConvictionPeriodYears() * tradingDaysPerYear;
-        return Math.max(1, totalTradingDays / tracker.getPartitionDays());
+        double totalTradingDays = tracker.getConvictionPeriodYears() * tradingDaysPerYear;
+        return Math.max(1, (int) Math.round(totalTradingDays / tracker.getPartitionDays()));
     }
 
     private int computePhaseIndex(int partitionIndex, int totalPartitions) {

@@ -6,9 +6,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ResponseStatus(HttpStatus.BAD_REQUEST)
 public class InvalidTrackerUpdateException extends DsipException {
 
-    public InvalidTrackerUpdateException(String fieldName, Integer currentValue, Integer requestedValue) {
+    public InvalidTrackerUpdateException(String fieldName, Double currentValue, Double requestedValue) {
         super(String.format(
-                "%s cannot be decreased. Current: %d, Requested: %d",
+                "%s cannot be decreased. Current: %.2f, Requested: %.2f",
                 fieldName, currentValue, requestedValue));
     }
 }

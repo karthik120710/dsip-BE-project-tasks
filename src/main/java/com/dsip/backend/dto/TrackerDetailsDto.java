@@ -20,7 +20,7 @@ public class TrackerDetailsDto {
     private String name;
 
     @JsonProperty("conviction_period_years")
-    private Integer convictionPeriodYears;
+    private Double convictionPeriodYears;
 
     @JsonProperty("total_capital_planned")
     private Double totalCapitalPlanned;

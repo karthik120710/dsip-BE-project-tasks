@@ -267,9 +267,9 @@ public class DsipTrackerService {
                         // Ensure medianDays is at least 1 to avoid division by zero
                         medianDays = Math.max(1, medianDays);
 
-                        int totalTradingDays = tracker.getConvictionPeriodYears()
+                        double totalTradingDays = tracker.getConvictionPeriodYears()
                                         * financialCalculator.getTradingDaysPerYear();
-                        totalCycles = Math.max(1, totalTradingDays / medianDays);
+                        totalCycles = Math.max(1, (int) Math.round(totalTradingDays / medianDays));
                 }
 
                 return com.dsip.backend.dto.TrackerDetailsDto.builder()
@@ -339,8 +339,8 @@ public class DsipTrackerService {
                         if (dto.getPartitionDays() < tracker.getPartitionDays()) {
                                 throw new com.dsip.backend.exception.InvalidTrackerUpdateException(
                                                 "Partition days",
-                                                tracker.getPartitionDays(),
-                                                dto.getPartitionDays());
+                                                tracker.getPartitionDays().doubleValue(),
+                                                dto.getPartitionDays().doubleValue());
                         }
                         tracker.setPartitionDays(dto.getPartitionDays());
                 }

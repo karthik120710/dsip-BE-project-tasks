@@ -22,7 +22,7 @@ public class DsipExecutionDto {
     private Integer partitionId;
 
     @JsonProperty("lock_in_percentage")
-    private Integer lockInPercentage;
+    private Double lockInPercentage;
 
     @JsonProperty("conviction_override")
     private Integer convictionOverride;

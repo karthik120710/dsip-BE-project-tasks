@@ -55,7 +55,7 @@ public class DsipTrackerDto {
     @JsonProperty("conviction_period_years")
     @NotNull(message = "Conviction period years is required")
     @Min(value = 1, message = "Conviction period must be at least 1 year")
-    private Integer convictionPeriodYears;
+    private Double convictionPeriodYears;
 
     @JsonProperty("total_capital_planned")
     @NotNull(message = "Total capital planned is required")

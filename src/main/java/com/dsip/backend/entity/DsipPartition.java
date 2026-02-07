@@ -24,6 +24,10 @@ public class DsipPartition {
     private Double noOfSharesBought;
     private Integer successfulGrowthCount;
 
+    private Double avgNegativeDeviation;
+    private Double maxNegativeDeviation;
+    private Integer negativeDeviationCount;
+
     private Instant partitionEndDate;
 
     private Integer status;

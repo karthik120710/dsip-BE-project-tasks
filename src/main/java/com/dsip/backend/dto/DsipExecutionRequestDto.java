@@ -18,7 +18,7 @@ public class DsipExecutionRequestDto {
     @JsonProperty("lock_in_percentage")
     @NotNull(message = "Lock-in percentage is required")
     @Max(value = 100, message = "Lock-in percentage cannot exceed 100")
-    private Integer lockInPercentage;
+    private Double lockInPercentage;
 
     @JsonProperty("conviction_override")
     @NotNull(message = "Conviction override is required")
