@@ -468,4 +468,68 @@ public class DsipTrackerService {
                                 .build();
         }
 
+        @Transactional
+        public void handlePartitionEndAction(Integer trackerId, Integer partitionIndex, UUID userId) {
+                DsipTracker tracker = dsipTrackerMapper.findTrackerById(trackerId)
+                                .orElseThrow(() -> new TrackerNotFoundException(trackerId));
+
+                if (!tracker.getUserId().equals(userId)) {
+                        throw new UnauthorizedTrackerAccessException(trackerId, userId);
+                }
+
+                DsipPartition partition = dsipTrackerMapper.findPartitionByTrackerIdAndIndex(trackerId, partitionIndex)
+                                .orElseThrow(() -> new PartitionNotFoundException(trackerId));
+
+                PartitionStatus status = PartitionStatus.fromValue(partition.getStatus());
+
+                if (status == PartitionStatus.KILL_SWITCH) {
+                        deleteTracker(trackerId, userId);
+                        log.info("Tracker {} deleted due to KILL_SWITCH on partition {}", trackerId, partitionIndex);
+                } else if (status == PartitionStatus.NEUTRAL) {
+                        int nextPartitionIndex = partition.getPartitionIndex() + 1;
+
+                        // Check if next partition already exists to avoid duplicates
+                        if (dsipTrackerMapper.findPartitionByTrackerIdAndIndex(trackerId, nextPartitionIndex)
+                                        .isPresent()) {
+                                log.warn("Next partition {} already exists for tracker {}", nextPartitionIndex,
+                                                trackerId);
+                                return;
+                        }
+
+                        List<DsipPartition> completed = dsipTrackerMapper.findCompletedPartitions(trackerId);
+                        List<Integer> pastPartitionLengths = completed.stream()
+                                        .map(p -> financialCalculator.calculateDaysBetween(p.getCreatedAt(),
+                                                        p.getPartitionEndDate()))
+                                        .filter(d -> d > 0)
+                                        .collect(java.util.stream.Collectors.toList());
+
+                        PartitionPlan plan = allocationPolicy.createPlan(tracker, nextPartitionIndex,
+                                        pastPartitionLengths);
+
+                        DsipPartition nextPartition = DsipPartition.builder()
+                                        .trackerId(trackerId)
+                                        .partitionIndex(plan.getPartitionIndex())
+                                        .expectedPartitionDays(plan.getExpectedLengthDays())
+                                        .partitionCapitalAllocated(plan.getAllocatedCapital())
+                                        .capitalInvestedSoFar(0.0)
+                                        .noOfSharesBought(0.0)
+                                        .successfulGrowthCount(0)
+                                        .avgNegativeDeviation(0.0)
+                                        .negativeDeviationCount(0)
+                                        .maxNegativeDeviation(0.0)
+                                        .status(PartitionStatus.ACTIVE.getValue())
+                                        .createdAt(Instant.now())
+                                        .build();
+
+                        dsipTrackerMapper.insertPartition(nextPartition);
+                        tracker.setActivePartitionIndex(nextPartitionIndex);
+                        dsipTrackerMapper.updateTracker(tracker);
+
+                        log.info("Created new partition {} for tracker {} after NEUTRAL end of partition {}",
+                                        nextPartitionIndex, trackerId, partitionIndex);
+                } else {
+                        log.info("No end action required for partition {} with status {}", partitionIndex, status);
+                }
+        }
+
 }

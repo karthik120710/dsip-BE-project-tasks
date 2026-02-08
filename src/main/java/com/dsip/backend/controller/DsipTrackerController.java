@@ -106,4 +106,14 @@ public class DsipTrackerController {
         dsipTrackerService.deleteTracker(trackerId, user.getId());
         return ResponseEntity.ok(Map.of("message", "Tracker deleted successfully"));
     }
+
+    @PostMapping("/end-action")
+    public ResponseEntity<Void> endAction(
+            @CurrentUser User user,
+            @RequestParam Integer trackerId,
+            @RequestParam Integer partitionIndex) {
+
+        dsipTrackerService.handlePartitionEndAction(trackerId, partitionIndex, user.getId());
+        return ResponseEntity.ok().build();
+    }
 }
