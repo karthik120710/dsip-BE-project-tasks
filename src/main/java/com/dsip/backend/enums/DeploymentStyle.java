@@ -10,9 +10,9 @@ import java.util.Arrays;
 @Getter
 @RequiredArgsConstructor
 public enum DeploymentStyle {
-    GRADUAL(1, "gradual"),
-    MODERATE(2, "moderate"),
-    AGGRESSIVE(3, "aggressive");
+    GRADUAL(1, "GRADUAL"),
+    MODERATE(2, "MODERATE"),
+    AGGRESSIVE(3, "AGGRESSIVE");
 
     private final int value;
     @JsonValue
