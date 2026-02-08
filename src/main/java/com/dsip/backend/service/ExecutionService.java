@@ -5,6 +5,7 @@ import com.dsip.backend.dto.ExecutionResponseDto;
 import com.dsip.backend.entity.DsipExecution;
 import com.dsip.backend.entity.DsipPartition;
 import com.dsip.backend.entity.DsipTracker;
+import com.dsip.backend.enums.EndReason;
 import com.dsip.backend.enums.PartitionStatus;
 import com.dsip.backend.exception.PartitionNotFoundException;
 import com.dsip.backend.exception.TrackerNotFoundException;
@@ -44,6 +45,16 @@ public class ExecutionService {
                 DsipPartition activePartition = dsipTrackerMapper
                                 .findPartitionByTrackerIdAndIndex(trackerId, tracker.getActivePartitionIndex())
                                 .orElseThrow(() -> new PartitionNotFoundException(trackerId));
+
+                // Check if partition is already ended
+                if (activePartition.getStatus() != PartitionStatus.ACTIVE.getValue()) {
+                        PartitionStatus status = PartitionStatus.fromValue(activePartition.getStatus());
+                        EndReason reason = EndReason.fromPartitionStatus(status);
+                        return ExecutionResponseDto.builder()
+                                        .status("SKIPPED")
+                                        .endReason(reason)
+                                        .build();
+                }
 
                 // 3. Get Last Execution Price (before inserting current one)
                 List<com.dsip.backend.dto.TrackerDetailsDto.HistoryItem> recentExecutions = dsipTrackerMapper
@@ -102,6 +113,9 @@ public class ExecutionService {
                                                 .capitalInvestedSoFar(0.0)
                                                 .noOfSharesBought(0.0)
                                                 .successfulGrowthCount(0)
+                                                .avgNegativeDeviation(0.0)
+                                                .negativeDeviationCount(0)
+                                                .maxNegativeDeviation(0.0)
                                                 .status(PartitionStatus.ACTIVE.getValue())
                                                 .createdAt(Instant.now())
                                                 .build();
@@ -135,19 +149,34 @@ public class ExecutionService {
                 partition.setCapitalInvestedSoFar(partition.getCapitalInvestedSoFar() + dto.getExecutedAmount());
                 partition.setNoOfSharesBought(partition.getNoOfSharesBought() + sharesBought);
 
-                boolean isGrowth = financialCalculator.calculateIsGrowth(partition, dto.getExecutionPrice(), marketPrice);
+                boolean isGrowth = financialCalculator.calculateIsGrowth(partition, dto.getExecutionPrice(),
+                                marketPrice);
 
                 if (isGrowth) {
-                        partition.setSuccessfulGrowthCount(partition.getSuccessfulGrowthCount() + 1);
+                        int currentGrowthCount = partition.getSuccessfulGrowthCount() != null
+                                        ? partition.getSuccessfulGrowthCount()
+                                        : 0;
+                        partition.setSuccessfulGrowthCount(currentGrowthCount + 1);
                 }
 
                 double deviation = dto.getExecutionPrice() - marketPrice;
                 if (deviation < 0) {
-                        double newAverage = (partition.getAvgNegativeDeviation() * partition.getNegativeDeviationCount()
-                                        + deviation) / (partition.getNegativeDeviationCount() + 1);
+                        double currentAvg = partition.getAvgNegativeDeviation() != null
+                                        ? partition.getAvgNegativeDeviation()
+                                        : 0.0;
+                        int currentCount = partition.getNegativeDeviationCount() != null
+                                        ? partition.getNegativeDeviationCount()
+                                        : 0;
+                        double currentMax = partition.getMaxNegativeDeviation() != null
+                                        ? partition.getMaxNegativeDeviation()
+                                        : 0.0;
+
+                        double newAverage = (currentAvg * currentCount + deviation) / (currentCount + 1);
+
                         partition.setAvgNegativeDeviation(newAverage);
-                        partition.setNegativeDeviationCount(partition.getNegativeDeviationCount() + 1);
-                        if (deviation < partition.getMaxNegativeDeviation()) {
+                        partition.setNegativeDeviationCount(currentCount + 1);
+
+                        if (currentCount == 0 || deviation < currentMax) {
                                 partition.setMaxNegativeDeviation(deviation);
                         }
                 }

@@ -58,6 +58,9 @@
         <result property="capitalInvestedSoFar" column="capital_invested_so_far"/>
         <result property="noOfSharesBought" column="no_of_shares_bought"/>
         <result property="successfulGrowthCount" column="successful_growth_count"/>
+        <result property="avgNegativeDeviation" column="avg_negative_deviation"/>
+        <result property="maxNegativeDeviation" column="max_negative_deviation"/>
+        <result property="negativeDeviationCount" column="negative_deviation_count"/>
         <result property="partitionEndDate" column="partition_end_date"/>
         <result property="status" column="status"/>
         <result property="createdAt" column="created_at"/>
@@ -172,11 +175,13 @@
             tracker_id, partition_index, expected_partition_days,
             partition_capital_allocated, capital_invested_so_far,
             no_of_shares_bought, successful_growth_count,
+            avg_negative_deviation, max_negative_deviation, negative_deviation_count,
             partition_end_date, status, created_at
         ) VALUES (
             #{trackerId}, #{partitionIndex}, #{expectedPartitionDays},
             #{partitionCapitalAllocated}, #{capitalInvestedSoFar},
             #{noOfSharesBought}, #{successfulGrowthCount},
+            #{avgNegativeDeviation}, #{maxNegativeDeviation}, #{negativeDeviationCount},
             #{partitionEndDate}, #{status}, #{createdAt}
         )
     </insert>
@@ -190,6 +195,7 @@
             partition_id, tracker_id, partition_index, expected_partition_days,
             partition_capital_allocated, capital_invested_so_far,
             no_of_shares_bought, successful_growth_count,
+            avg_negative_deviation, max_negative_deviation, negative_deviation_count,
             partition_end_date, status, created_at
         FROM dsip_partitions
         WHERE tracker_id = #{trackerId}
@@ -203,6 +209,9 @@
         SET capital_invested_so_far = #{capitalInvestedSoFar},
             no_of_shares_bought = #{noOfSharesBought},
             successful_growth_count = #{successfulGrowthCount},
+            avg_negative_deviation = #{avgNegativeDeviation},
+            max_negative_deviation = #{maxNegativeDeviation},
+            negative_deviation_count = #{negativeDeviationCount},
             status = #{status},
             partition_end_date = #{partitionEndDate}
         WHERE partition_id = #{partitionId}

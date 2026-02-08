@@ -1,5 +1,7 @@
 package com.dsip.backend.enums;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -13,6 +15,7 @@ public enum DeploymentStyle {
     AGGRESSIVE(3, "aggressive");
 
     private final int value;
+    @JsonValue
     private final String key;
 
     public static DeploymentStyle fromValue(int value) {
@@ -20,5 +23,13 @@ public enum DeploymentStyle {
                 .filter(style -> style.value == value)
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Unknown DeploymentStyle value: " + value));
+    }
+
+    @JsonCreator
+    public static DeploymentStyle fromKey(String key) {
+        return Arrays.stream(values())
+                .filter(style -> style.key.equalsIgnoreCase(key))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Unknown DeploymentStyle key: " + key));
     }
 }

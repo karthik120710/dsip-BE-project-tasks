@@ -21,239 +21,253 @@ import java.util.Map;
 @Slf4j
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidationExceptions(
-            MethodArgumentNotValidException ex) {
+        @ExceptionHandler(MethodArgumentNotValidException.class)
+        public ResponseEntity<Map<String, Object>> handleValidationExceptions(
+                        MethodArgumentNotValidException ex) {
 
-        Map<String, String> errors = new HashMap<>();
-        Object target = ex.getBindingResult().getTarget();
+                Map<String, String> errors = new HashMap<>();
+                Object target = ex.getBindingResult().getTarget();
 
-        ex.getBindingResult().getAllErrors().forEach(error -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            String jsonFieldName = fieldName;
+                ex.getBindingResult().getAllErrors().forEach(error -> {
+                        String fieldName = ((FieldError) error).getField();
+                        String errorMessage = error.getDefaultMessage();
+                        String jsonFieldName = fieldName;
 
-            if (target != null) {
-                try {
-                    java.lang.reflect.Field field = target.getClass().getDeclaredField(fieldName);
-                    com.fasterxml.jackson.annotation.JsonProperty annotation = field
-                            .getAnnotation(com.fasterxml.jackson.annotation.JsonProperty.class);
-                    if (annotation != null) {
-                        jsonFieldName = annotation.value();
-                    }
-                } catch (NoSuchFieldException e) {
-                    // unexpected, fallback to fieldName
+                        if (target != null) {
+                                try {
+                                        java.lang.reflect.Field field = target.getClass().getDeclaredField(fieldName);
+                                        com.fasterxml.jackson.annotation.JsonProperty annotation = field
+                                                        .getAnnotation(com.fasterxml.jackson.annotation.JsonProperty.class);
+                                        if (annotation != null) {
+                                                jsonFieldName = annotation.value();
+                                        }
+                                } catch (NoSuchFieldException e) {
+                                        // unexpected, fallback to fieldName
+                                }
+                        }
+
+                        errors.put(jsonFieldName, errorMessage);
+                });
+
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                                "error", "Validation failed",
+                                "details", errors,
+                                "timestamp", Instant.now().toString()));
+        }
+
+        @ExceptionHandler(MissingServletRequestParameterException.class)
+        public ResponseEntity<Map<String, Object>> handleMissingParams(
+                        MissingServletRequestParameterException ex) {
+
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                                "error", "Missing required parameter",
+                                "message", String.format("Required parameter '%s' of type %s is missing",
+                                                ex.getParameterName(), ex.getParameterType()),
+                                "timestamp", Instant.now().toString()));
+        }
+
+        @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+        public ResponseEntity<Map<String, Object>> handleTypeMismatch(
+                        MethodArgumentTypeMismatchException ex) {
+
+                String message;
+                if (ex.getRequiredType() != null && ex.getRequiredType().isEnum()) {
+                        Object[] enumConstants = ex.getRequiredType().getEnumConstants();
+                        message = String.format("Invalid value '%s' for parameter '%s'. Allowed values: %s",
+                                        ex.getValue(), ex.getName(), Arrays.toString(enumConstants));
+                } else {
+                        message = String.format("Invalid value '%s' for parameter '%s'",
+                                        ex.getValue(), ex.getName());
                 }
-            }
 
-            errors.put(jsonFieldName, errorMessage);
-        });
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                "error", "Validation failed",
-                "details", errors,
-                "timestamp", Instant.now().toString()));
-    }
-
-    @ExceptionHandler(MissingServletRequestParameterException.class)
-    public ResponseEntity<Map<String, Object>> handleMissingParams(
-            MissingServletRequestParameterException ex) {
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                "error", "Missing required parameter",
-                "message", String.format("Required parameter '%s' of type %s is missing",
-                        ex.getParameterName(), ex.getParameterType()),
-                "timestamp", Instant.now().toString()));
-    }
-
-    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<Map<String, Object>> handleTypeMismatch(
-            MethodArgumentTypeMismatchException ex) {
-
-        String message;
-        if (ex.getRequiredType() != null && ex.getRequiredType().isEnum()) {
-            Object[] enumConstants = ex.getRequiredType().getEnumConstants();
-            message = String.format("Invalid value '%s' for parameter '%s'. Allowed values: %s",
-                    ex.getValue(), ex.getName(), Arrays.toString(enumConstants));
-        } else {
-            message = String.format("Invalid value '%s' for parameter '%s'",
-                    ex.getValue(), ex.getName());
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                                "error", "Invalid parameter",
+                                "message", message,
+                                "timestamp", Instant.now().toString()));
         }
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                "error", "Invalid parameter",
-                "message", message,
-                "timestamp", Instant.now().toString()));
-    }
-
-    @ExceptionHandler(StockNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleStockNotFound(StockNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
-                "error", "Stock not found",
-                "message", ex.getMessage(),
-                "timestamp", Instant.now().toString()));
-    }
-
-    @ExceptionHandler(StockPriceFetchException.class)
-    public ResponseEntity<Map<String, Object>> handleStockPriceFetchError(StockPriceFetchException ex) {
-        log.error("Stock price fetch failed", ex);
-        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of(
-                "error", "Unable to fetch stock price",
-                "message", ex.getMessage(),
-                "timestamp", Instant.now().toString()));
-    }
-
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(
-            IllegalArgumentException ex) {
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                "error", "Bad request",
-                "message", ex.getMessage(),
-                "timestamp", Instant.now().toString()));
-    }
-
-    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
-    public ResponseEntity<Map<String, Object>> handleHttpMessageNotReadableException(
-            org.springframework.http.converter.HttpMessageNotReadableException ex) {
-
-        String message = "Invalid JSON request body";
-
-        Throwable cause = ex.getCause();
-        if (cause instanceof com.fasterxml.jackson.databind.exc.InvalidFormatException) {
-            com.fasterxml.jackson.databind.exc.InvalidFormatException ifx = (com.fasterxml.jackson.databind.exc.InvalidFormatException) cause;
-
-            if (!ifx.getPath().isEmpty()) {
-                String fieldName = ifx.getPath().get(ifx.getPath().size() - 1).getFieldName();
-                String targetType = ifx.getTargetType().getSimpleName();
-                message = String.format("Invalid value for field '%s': expected %s", fieldName, targetType);
-            }
+        @ExceptionHandler(StockNotFoundException.class)
+        public ResponseEntity<Map<String, Object>> handleStockNotFound(StockNotFoundException ex) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                                "error", "Stock not found",
+                                "message", ex.getMessage(),
+                                "timestamp", Instant.now().toString()));
         }
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                "error", "Bad Request",
-                "message", message,
-                "timestamp", Instant.now().toString()));
-    }
-
-    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
-    public ResponseEntity<Map<String, Object>> handleResponseStatusException(
-            org.springframework.web.server.ResponseStatusException ex) {
-
-        return ResponseEntity.status(ex.getStatusCode()).body(Map.of(
-                "error", ex.getStatusCode().toString(),
-                "message", ex.getReason() != null ? ex.getReason() : "Error",
-                "timestamp", Instant.now().toString()));
-    }
-
-    @ExceptionHandler(com.dsip.backend.exception.TrackerNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleTrackerNotFoundException(
-            com.dsip.backend.exception.TrackerNotFoundException ex) {
-
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
-                "error", "Tracker not found",
-                "message", ex.getMessage(),
-                "timestamp", Instant.now().toString()));
-    }
-
-    @ExceptionHandler(com.dsip.backend.exception.PartitionNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handlePartitionNotFoundException(
-            com.dsip.backend.exception.PartitionNotFoundException ex) {
-
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
-                "error", "Partition not found",
-                "message", ex.getMessage(),
-                "timestamp", Instant.now().toString()));
-    }
-
-    @ExceptionHandler(com.dsip.backend.exception.UnauthorizedTrackerAccessException.class)
-    public ResponseEntity<Map<String, Object>> handleUnauthorizedTrackerAccess(
-            com.dsip.backend.exception.UnauthorizedTrackerAccessException ex) {
-
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
-                "error", "Forbidden",
-                "message", ex.getMessage(),
-                "timestamp", Instant.now().toString()));
-    }
-
-    @ExceptionHandler(com.dsip.backend.exception.DuplicateTrackerException.class)
-    public ResponseEntity<Map<String, Object>> handleDuplicateTrackerException(
-            com.dsip.backend.exception.DuplicateTrackerException ex) {
-
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
-                "error", "Duplicate tracker",
-                "message", ex.getMessage(),
-                "timestamp", Instant.now().toString()));
-    }
-
-    @ExceptionHandler(com.dsip.backend.exception.InvalidExecutionException.class)
-    public ResponseEntity<Map<String, Object>> handleInvalidExecutionException(
-            com.dsip.backend.exception.InvalidExecutionException ex) {
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                "error", "Invalid execution",
-                "message", ex.getMessage(),
-                "timestamp", Instant.now().toString()));
-    }
-
-    @ExceptionHandler(com.dsip.backend.exception.PartitionAlreadyCompletedException.class)
-    public ResponseEntity<Map<String, Object>> handlePartitionAlreadyCompletedException(
-            com.dsip.backend.exception.PartitionAlreadyCompletedException ex) {
-
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
-                "error", "Partition already completed",
-                "message", ex.getMessage(),
-                "timestamp", Instant.now().toString()));
-    }
-
-    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleNoResourceFoundException(
-            org.springframework.web.servlet.resource.NoResourceFoundException ex) {
-
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
-                "error", "Not Found",
-                "message", ex.getMessage(),
-                "timestamp", Instant.now().toString()));
-    }
-
-    @ExceptionHandler(com.dsip.backend.exception.InvalidCapitalUpdateException.class)
-    public ResponseEntity<Map<String, Object>> handleInvalidCapitalUpdateException(
-            com.dsip.backend.exception.InvalidCapitalUpdateException ex) {
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                "error", "Invalid update",
-                "message", ex.getMessage(),
-                "timestamp", Instant.now().toString()));
-    }
-
-    @ExceptionHandler(com.dsip.backend.exception.InvalidTrackerUpdateException.class)
-    public ResponseEntity<Map<String, Object>> handleInvalidTrackerUpdateException(
-            com.dsip.backend.exception.InvalidTrackerUpdateException ex) {
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                "error", "Invalid update",
-                "message", ex.getMessage(),
-                "timestamp", Instant.now().toString()));
-    }
-
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
-        log.error("Unhandled exception", ex);
-
-        Map<String, Object> body = new HashMap<>();
-        body.put("error", "Internal server error");
-        body.put("message", "An unexpected error occurred");
-        body.put("timestamp", Instant.now().toString());
-
-        if (ex.getStackTrace().length > 0) {
-            StackTraceElement element = ex.getStackTrace()[0];
-            body.put("source", String.format("%s.%s(%s:%d)",
-                    element.getClassName(),
-                    element.getMethodName(),
-                    element.getFileName(),
-                    element.getLineNumber()));
+        @ExceptionHandler(StockPriceFetchException.class)
+        public ResponseEntity<Map<String, Object>> handleStockPriceFetchError(StockPriceFetchException ex) {
+                log.error("Stock price fetch failed", ex);
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of(
+                                "error", "Unable to fetch stock price",
+                                "message", ex.getMessage(),
+                                "timestamp", Instant.now().toString()));
         }
 
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
-    }
+        @ExceptionHandler(IllegalArgumentException.class)
+        public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(
+                        IllegalArgumentException ex) {
+
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                                "error", "Bad request",
+                                "message", ex.getMessage(),
+                                "timestamp", Instant.now().toString()));
+        }
+
+        @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+        public ResponseEntity<Map<String, Object>> handleHttpMessageNotReadableException(
+                        org.springframework.http.converter.HttpMessageNotReadableException ex) {
+
+                String message = "Invalid JSON request body";
+
+                Throwable cause = ex.getCause();
+                if (cause instanceof com.fasterxml.jackson.databind.exc.InvalidFormatException) {
+                        com.fasterxml.jackson.databind.exc.InvalidFormatException ifx = (com.fasterxml.jackson.databind.exc.InvalidFormatException) cause;
+
+                        if (!ifx.getPath().isEmpty()) {
+                                String fieldName = ifx.getPath().get(ifx.getPath().size() - 1).getFieldName();
+                                String targetType = ifx.getTargetType().getSimpleName();
+                                message = String.format("Invalid value for field '%s': expected %s", fieldName,
+                                                targetType);
+                        }
+                } else if (cause instanceof com.fasterxml.jackson.databind.exc.ValueInstantiationException) {
+                        com.fasterxml.jackson.databind.exc.ValueInstantiationException vie = (com.fasterxml.jackson.databind.exc.ValueInstantiationException) cause;
+                        if (vie.getCause() != null) {
+                                message = vie.getCause().getMessage();
+                        } else {
+                                message = vie.getOriginalMessage();
+                        }
+                } else if (cause instanceof com.fasterxml.jackson.databind.JsonMappingException) {
+                        com.fasterxml.jackson.databind.JsonMappingException jme = (com.fasterxml.jackson.databind.JsonMappingException) cause;
+                        message = jme.getOriginalMessage();
+                        if (jme.getCause() != null) {
+                                message = jme.getCause().getMessage();
+                        }
+                }
+
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                                "error", "Bad Request",
+                                "message", message,
+                                "timestamp", Instant.now().toString()));
+        }
+
+        @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+        public ResponseEntity<Map<String, Object>> handleResponseStatusException(
+                        org.springframework.web.server.ResponseStatusException ex) {
+
+                return ResponseEntity.status(ex.getStatusCode()).body(Map.of(
+                                "error", ex.getStatusCode().toString(),
+                                "message", ex.getReason() != null ? ex.getReason() : "Error",
+                                "timestamp", Instant.now().toString()));
+        }
+
+        @ExceptionHandler(com.dsip.backend.exception.TrackerNotFoundException.class)
+        public ResponseEntity<Map<String, Object>> handleTrackerNotFoundException(
+                        com.dsip.backend.exception.TrackerNotFoundException ex) {
+
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                                "error", "Tracker not found",
+                                "message", ex.getMessage(),
+                                "timestamp", Instant.now().toString()));
+        }
+
+        @ExceptionHandler(com.dsip.backend.exception.PartitionNotFoundException.class)
+        public ResponseEntity<Map<String, Object>> handlePartitionNotFoundException(
+                        com.dsip.backend.exception.PartitionNotFoundException ex) {
+
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                                "error", "Partition not found",
+                                "message", ex.getMessage(),
+                                "timestamp", Instant.now().toString()));
+        }
+
+        @ExceptionHandler(com.dsip.backend.exception.UnauthorizedTrackerAccessException.class)
+        public ResponseEntity<Map<String, Object>> handleUnauthorizedTrackerAccess(
+                        com.dsip.backend.exception.UnauthorizedTrackerAccessException ex) {
+
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                                "error", "Forbidden",
+                                "message", ex.getMessage(),
+                                "timestamp", Instant.now().toString()));
+        }
+
+        @ExceptionHandler(com.dsip.backend.exception.DuplicateTrackerException.class)
+        public ResponseEntity<Map<String, Object>> handleDuplicateTrackerException(
+                        com.dsip.backend.exception.DuplicateTrackerException ex) {
+
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                                "error", "Duplicate tracker",
+                                "message", ex.getMessage(),
+                                "timestamp", Instant.now().toString()));
+        }
+
+        @ExceptionHandler(com.dsip.backend.exception.InvalidExecutionException.class)
+        public ResponseEntity<Map<String, Object>> handleInvalidExecutionException(
+                        com.dsip.backend.exception.InvalidExecutionException ex) {
+
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                                "error", "Invalid execution",
+                                "message", ex.getMessage(),
+                                "timestamp", Instant.now().toString()));
+        }
+
+        @ExceptionHandler(com.dsip.backend.exception.PartitionAlreadyCompletedException.class)
+        public ResponseEntity<Map<String, Object>> handlePartitionAlreadyCompletedException(
+                        com.dsip.backend.exception.PartitionAlreadyCompletedException ex) {
+
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                                "error", "Partition already completed",
+                                "message", ex.getMessage(),
+                                "timestamp", Instant.now().toString()));
+        }
+
+        @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+        public ResponseEntity<Map<String, Object>> handleNoResourceFoundException(
+                        org.springframework.web.servlet.resource.NoResourceFoundException ex) {
+
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                                "error", "Not Found",
+                                "message", ex.getMessage(),
+                                "timestamp", Instant.now().toString()));
+        }
+
+        @ExceptionHandler(com.dsip.backend.exception.InvalidCapitalUpdateException.class)
+        public ResponseEntity<Map<String, Object>> handleInvalidCapitalUpdateException(
+                        com.dsip.backend.exception.InvalidCapitalUpdateException ex) {
+
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                                "error", "Invalid update",
+                                "message", ex.getMessage(),
+                                "timestamp", Instant.now().toString()));
+        }
+
+        @ExceptionHandler(com.dsip.backend.exception.InvalidTrackerUpdateException.class)
+        public ResponseEntity<Map<String, Object>> handleInvalidTrackerUpdateException(
+                        com.dsip.backend.exception.InvalidTrackerUpdateException ex) {
+
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                                "error", "Invalid update",
+                                "message", ex.getMessage(),
+                                "timestamp", Instant.now().toString()));
+        }
+
+        @ExceptionHandler(Exception.class)
+        public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
+                log.error("Unhandled exception", ex);
+
+                Map<String, Object> body = new HashMap<>();
+                body.put("error", "Internal server error");
+                body.put("message", "An unexpected error occurred");
+                body.put("timestamp", Instant.now().toString());
+
+                if (ex.getStackTrace().length > 0) {
+                        StackTraceElement element = ex.getStackTrace()[0];
+                        body.put("source", String.format("%s.%s(%s:%d)",
+                                        element.getClassName(),
+                                        element.getMethodName(),
+                                        element.getFileName(),
+                                        element.getLineNumber()));
+                }
+
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
+        }
 }

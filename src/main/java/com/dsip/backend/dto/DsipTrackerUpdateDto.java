@@ -1,10 +1,8 @@
 package com.dsip.backend.dto;
 
 import com.dsip.backend.constants.DsipConstants;
-
 import com.dsip.backend.enums.DeploymentStyle;
 import com.dsip.backend.enums.TrackerStatus;
-import com.dsip.backend.validation.ValidEnum;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Max;
@@ -21,8 +19,7 @@ import lombok.NoArgsConstructor;
 public class DsipTrackerUpdateDto {
 
     @JsonProperty("deployment_style")
-    @ValidEnum(enumClass = DeploymentStyle.class, message = "Invalid deployment style")
-    private Integer deploymentStyle;
+    private DeploymentStyle deploymentStyle;
 
     @JsonProperty("base_conviction_score")
     @Min(value = 0, message = "Conviction score cannot be less than 0")
@@ -30,8 +27,7 @@ public class DsipTrackerUpdateDto {
     private Integer baseConvictionScore;
 
     @JsonProperty("status")
-    @ValidEnum(enumClass = TrackerStatus.class, message = "Invalid status")
-    private Integer status;
+    private TrackerStatus status;
 
     @JsonProperty("total_capital_planned")
     @Min(value = 1, message = "Total capital planned must be at least 1")

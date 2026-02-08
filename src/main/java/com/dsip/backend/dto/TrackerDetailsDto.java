@@ -1,5 +1,7 @@
 package com.dsip.backend.dto;
 
+import com.dsip.backend.enums.DeploymentStyle;
+import com.dsip.backend.enums.TrackerStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -29,13 +31,13 @@ public class TrackerDetailsDto {
     private Integer partitionMonths;
 
     @JsonProperty("deployment_style")
-    private String deploymentStyle;
+    private DeploymentStyle deploymentStyle;
 
     @JsonProperty("base_conviction_score")
     private Integer baseConvictionScore;
 
     @JsonProperty("status")
-    private Integer status;
+    private TrackerStatus status;
 
     // Overall Performance (Includes Initials)
     @JsonProperty("total_capital_invested_so_far")

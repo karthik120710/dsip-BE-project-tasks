@@ -95,9 +95,9 @@ CREATE TABLE IF NOT EXISTS dsip_partitions (
     capital_invested_so_far DOUBLE PRECISION NOT NULL DEFAULT 0,
     no_of_shares_bought DOUBLE PRECISION NOT NULL DEFAULT 0,
     successful_growth_count SMALLINT NOT NULL DEFAULT 0,
-    avg_negative_deviation DOUBLE PRECISION,
-    max_negative_deviation DOUBLE PRECISION,
-    negative_deviation_count SMALLINT,
+    avg_negative_deviation DOUBLE PRECISION DEFAULT 0,
+    max_negative_deviation DOUBLE PRECISION DEFAULT 0,
+    negative_deviation_count SMALLINT DEFAULT 0,
     partition_end_date TIMESTAMP WITH TIME ZONE,
     status SMALLINT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL

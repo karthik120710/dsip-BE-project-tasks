@@ -1,5 +1,6 @@
 package com.dsip.backend.dto;
 
+import com.dsip.backend.enums.PartitionStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
@@ -14,7 +15,7 @@ public class PartitionDetailsDto {
     private Integer partitionIndex;
 
     @JsonProperty("status")
-    private Integer status;
+    private PartitionStatus status;
 
     @JsonProperty("capital_allocated")
     private Double capitalAllocated;

@@ -2,7 +2,8 @@ package com.dsip.backend.dto;
 
 import com.dsip.backend.constants.DsipConstants;
 
-import com.dsip.backend.validation.ValidEnum;
+import com.dsip.backend.enums.DeploymentStyle;
+import com.dsip.backend.enums.TrackerStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Max;
@@ -30,7 +31,7 @@ public class DsipTrackerDto {
     @JsonProperty("stock_symbol")
     private String stockSymbol;
 
-    private Integer status;
+    private TrackerStatus status;
 
     @JsonProperty("active_partition_index")
     private Integer activePartitionIndex;
@@ -91,8 +92,7 @@ public class DsipTrackerDto {
 
     @JsonProperty("deployment_style")
     @NotNull(message = "Deployment style is required")
-    @ValidEnum(enumClass = com.dsip.backend.enums.DeploymentStyle.class, message = "Invalid deployment style")
-    private Integer deploymentStyle;
+    private DeploymentStyle deploymentStyle;
 
     @JsonProperty("base_conviction_score")
     @NotNull(message = "Base conviction score is required")
@@ -112,11 +112,11 @@ public class DsipTrackerDto {
                 .totalCapitalPlanned(tracker.getTotalCapitalPlanned())
                 .partitionDays(tracker.getPartitionDays())
                 .partitionMonths(tracker.getPartitionDays() / DsipConstants.DAYS_PER_MONTH)
-                .deploymentStyle(tracker.getDeploymentStyle())
+                .deploymentStyle(DeploymentStyle.fromValue(tracker.getDeploymentStyle()))
                 .baseConvictionScore(tracker.getBaseConvictionScore())
                 .initialInvestedAmount(tracker.getInitialInvestedAmount())
                 .initialSharesHeld(tracker.getInitialSharesHeld())
-                .status(tracker.getStatus())
+                .status(TrackerStatus.fromValue(tracker.getStatus()))
                 .activePartitionIndex(tracker.getActivePartitionIndex())
                 .totalCapitalInvestedSoFar(tracker.getTotalCapitalInvestedSoFar())
                 .sharesHeldSoFar(tracker.getSharesHeldSoFar())

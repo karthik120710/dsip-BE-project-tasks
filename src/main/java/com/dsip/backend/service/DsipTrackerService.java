@@ -9,6 +9,7 @@ import com.dsip.backend.dto.DsipTrackerUpdateDto;
 import com.dsip.backend.entity.DsipPartition;
 import com.dsip.backend.entity.DsipTracker;
 import com.dsip.backend.entity.Stock;
+
 import com.dsip.backend.enums.PartitionStatus;
 import com.dsip.backend.enums.TrackerStatus;
 import com.dsip.backend.exception.StockNotFoundException;
@@ -54,7 +55,7 @@ public class DsipTrackerService {
                                 .convictionPeriodYears(dto.getConvictionPeriodYears())
                                 .totalCapitalPlanned(dto.getTotalCapitalPlanned())
                                 .partitionDays(dto.getPartitionDays())
-                                .deploymentStyle(dto.getDeploymentStyle())
+                                .deploymentStyle(dto.getDeploymentStyle().getValue())
                                 .baseConvictionScore(dto.getBaseConvictionScore())
                                 .initialInvestedAmount(dto.getInitialInvestedAmount())
                                 .initialSharesHeld(dto.getInitialSharesHeld())
@@ -82,6 +83,9 @@ public class DsipTrackerService {
                                 .capitalInvestedSoFar(0.0)
                                 .noOfSharesBought(0.0)
                                 .successfulGrowthCount(0)
+                                .avgNegativeDeviation(0.0)
+                                .negativeDeviationCount(0)
+                                .maxNegativeDeviation(0.0)
                                 .status(PartitionStatus.ACTIVE.getValue())
                                 .createdAt(Instant.now())
                                 .build();
@@ -317,9 +321,9 @@ public class DsipTrackerService {
                                 .totalCapitalPlanned(tracker.getTotalCapitalPlanned())
                                 .partitionMonths(tracker.getPartitionDays() / DsipConstants.DAYS_PER_MONTH)
                                 .deploymentStyle(com.dsip.backend.enums.DeploymentStyle
-                                                .fromValue(tracker.getDeploymentStyle()).name())
+                                                .fromValue(tracker.getDeploymentStyle()))
                                 .baseConvictionScore(tracker.getBaseConvictionScore())
-                                .status(tracker.getStatus())
+                                .status(TrackerStatus.fromValue(tracker.getStatus()))
 
                                 .totalCapitalInvestedSoFar((double) totalInvested)
                                 .currentTotalValue(currentTotalValue)
@@ -347,13 +351,13 @@ public class DsipTrackerService {
                 }
 
                 if (dto.getDeploymentStyle() != null) {
-                        tracker.setDeploymentStyle(dto.getDeploymentStyle());
+                        tracker.setDeploymentStyle(dto.getDeploymentStyle().getValue());
                 }
                 if (dto.getBaseConvictionScore() != null) {
                         tracker.setBaseConvictionScore(dto.getBaseConvictionScore());
                 }
                 if (dto.getStatus() != null) {
-                        tracker.setStatus(dto.getStatus());
+                        tracker.setStatus(dto.getStatus().getValue());
                 }
                 if (dto.getTotalCapitalPlanned() != null) {
                         if (dto.getTotalCapitalPlanned() < tracker.getTotalCapitalPlanned()) {
@@ -449,7 +453,7 @@ public class DsipTrackerService {
 
                 return com.dsip.backend.dto.PartitionDetailsDto.builder()
                                 .partitionIndex(partition.getPartitionIndex())
-                                .status(partition.getStatus())
+                                .status(PartitionStatus.fromValue(partition.getStatus()))
                                 .capitalAllocated(partition.getPartitionCapitalAllocated())
                                 .capitalDeployed(capitalInvested)
                                 .sharesBought(sharesBought)
