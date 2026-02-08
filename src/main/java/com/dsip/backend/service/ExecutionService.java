@@ -72,7 +72,7 @@ public class ExecutionService {
                 // Apply execution to partition (in-memory)
                 applyExecutionToPartition(activePartition, dto, lastExecutionPrice, latestMarketPrice);
                 // Apply execution to tracker (in-memory)
-                applyExecutionToTracker(tracker, dto, lastExecutionPrice);
+                applyExecutionToTracker(tracker, dto);
 
                 // 6. Evaluate Lifecycle
 
@@ -124,7 +124,7 @@ public class ExecutionService {
 
         /**
          * Apply execution metrics to partition in memory.
-         * Updates capital invested, shares bought, and growth count.
+         * Updates capital invested, shares bought,negative deviation and growth count
          * DOES NOT UPDATE DB
          */
         private void applyExecutionToPartition(DsipPartition partition, DsipExecutionRequestDto dto,
@@ -135,11 +135,21 @@ public class ExecutionService {
                 partition.setCapitalInvestedSoFar(partition.getCapitalInvestedSoFar() + dto.getExecutedAmount());
                 partition.setNoOfSharesBought(partition.getNoOfSharesBought() + sharesBought);
 
-                boolean isGrowth = financialCalculator.calculateIsGrowth(partition, dto.getExecutionPrice(),
-                                lastExecutionPrice, marketPrice);
+                boolean isGrowth = financialCalculator.calculateIsGrowth(partition, dto.getExecutionPrice(), marketPrice);
 
                 if (isGrowth) {
                         partition.setSuccessfulGrowthCount(partition.getSuccessfulGrowthCount() + 1);
+                }
+
+                double deviation = dto.getExecutionPrice() - marketPrice;
+                if (deviation < 0) {
+                        double newAverage = (partition.getAvgNegativeDeviation() * partition.getNegativeDeviationCount()
+                                        + deviation) / (partition.getNegativeDeviationCount() + 1);
+                        partition.setAvgNegativeDeviation(newAverage);
+                        partition.setNegativeDeviationCount(partition.getNegativeDeviationCount() + 1);
+                        if (deviation < partition.getMaxNegativeDeviation()) {
+                                partition.setMaxNegativeDeviation(deviation);
+                        }
                 }
         }
 
@@ -148,8 +158,7 @@ public class ExecutionService {
          * Updates total capital invested and shares held.
          * DOES NOT UPDATE DB
          */
-        private void applyExecutionToTracker(DsipTracker tracker, DsipExecutionRequestDto dto,
-                        Double lastExecutionPrice) {
+        private void applyExecutionToTracker(DsipTracker tracker, DsipExecutionRequestDto dto) {
                 Double sharesBought = financialCalculator.calculateSharesBought(dto.getExecutedAmount(),
                                 dto.getExecutionPrice());
 

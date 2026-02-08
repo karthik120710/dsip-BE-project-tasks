@@ -95,7 +95,7 @@ public class FinancialCalculator {
     }
 
     public boolean calculateIsGrowth(com.dsip.backend.entity.DsipPartition partition, Double currentExecutionPrice,
-            Double lastExecutionPrice, Double marketPrice) {
+            Double marketPrice) {
         if (partition.getCapitalInvestedSoFar() == null ||
                 partition.getCapitalInvestedSoFar() == 0.0 ||
                 partition.getNoOfSharesBought() == null ||
@@ -106,17 +106,10 @@ public class FinancialCalculator {
         if (marketPrice == null || marketPrice <= 0) {
             return false;
         }
-
-        // If this is the first execution (lastExecutionPrice is null or 0), we can't
-        // really determine growth momentum from previous execution.
-        // Assuming false for safety/strictness.
-        if (lastExecutionPrice == null || lastExecutionPrice <= 0) {
-            return false;
-        }
         double currentCumulativeReturnPercentage = cumulativeReturnPercentage(partition.getNoOfSharesBought(),
                 partition.getCapitalInvestedSoFar(), marketPrice);
         // Logic: Momentum (Current > Last) AND Profitability
-        return (currentExecutionPrice > lastExecutionPrice) && currentCumulativeReturnPercentage > 0;
+        return (currentExecutionPrice > marketPrice) && currentCumulativeReturnPercentage > 0;
     }
 
     public double calculatePartitionProgressPercentage(com.dsip.backend.entity.DsipPartition partition,
