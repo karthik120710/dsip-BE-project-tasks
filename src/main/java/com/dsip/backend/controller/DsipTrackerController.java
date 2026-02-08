@@ -4,6 +4,7 @@ import com.dsip.backend.auth.CurrentUser;
 import com.dsip.backend.dto.DsipTrackerDto;
 import com.dsip.backend.dto.DsipTrackerUpdateDto;
 import com.dsip.backend.dto.DsipExecutionRequestDto;
+import com.dsip.backend.dto.ExecutionResponseDto;
 import com.dsip.backend.entity.User;
 import com.dsip.backend.service.DsipTrackerService;
 import com.dsip.backend.service.ExecutionService;
@@ -66,12 +67,12 @@ public class DsipTrackerController {
     }
 
     @PostMapping("/{trackerId}/execute")
-    public ResponseEntity<Map<String, Object>> executeTracker(
+    public ResponseEntity<ExecutionResponseDto> executeTracker(
             @CurrentUser User user,
             @PathVariable Integer trackerId,
             @Valid @RequestBody DsipExecutionRequestDto request) {
 
-        Map<String, Object> result = executionService.executeTrade(trackerId, user.getId(), request);
+        ExecutionResponseDto result = executionService.executeTrade(trackerId, user.getId(), request);
         return ResponseEntity.ok(result);
     }
 

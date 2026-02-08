@@ -31,18 +31,24 @@ public class PartitionLifecyclePolicy {
 
         if (isSuccessCondition(partitionProgress, timeProgress, capitalProgress))
             return PartitionEndDecision.end(EndReason.SUCCESS);
-        if (isKillSwitchPoorGrowth(capitalProgress, growthPersistence))
-            return PartitionEndDecision.end(EndReason.KILL_SWITCH_POOR_GROWTH);
-        if (isKillSwitchStagnation(timeProgress, cumulativeReturn))
-            return PartitionEndDecision.end(EndReason.KILL_SWITCH_STAGNATION);
+
+        if (isKillSwitchStagnation(timeProgress, cumulativeReturn)
+                || isKillSwitchPoorGrowth(capitalProgress, growthPersistence)) {
+            return PartitionEndDecision.end(EndReason.KILL_SWITCH);
+        }
+
         if (isZombieRemainder(partition, daysElapsed))
-            return PartitionEndDecision.end(EndReason.ZOMBIE_REMAINDER);
+            return cumulativeReturn >= 0 ? PartitionEndDecision.end(EndReason.NEUTRAL_PARTITION)
+                    : PartitionEndDecision.end(EndReason.KILL_SWITCH);
+
+        if (isNeutralByTimeExhaustion(cumulativeReturn, timeProgress))
+            return PartitionEndDecision.end(EndReason.NEUTRAL_PARTITION);
 
         return PartitionEndDecision.continueRunning();
     }
 
     private boolean isSuccessCondition(double partitionProgress, double timeProgress, double capitalProgress) {
-        return partitionProgress >= 80 && (timeProgress >= 100 || capitalProgress >= 0.9);
+        return partitionProgress >= 80 && (timeProgress >= 100 || capitalProgress >= 90);
     }
 
     private boolean isKillSwitchPoorGrowth(double capitalProgress, double growthPersistence) {
@@ -58,5 +64,9 @@ public class PartitionLifecyclePolicy {
         double minimumTradableAmount = Math.max(1,
                 capitalRemaining / (partition.getExpectedPartitionDays() - daysElapsed));
         return capitalRemaining < minimumTradableAmount;
+    }
+
+    private boolean isNeutralByTimeExhaustion(double netProfitPct, double timeElapsedRatio) {
+        return netProfitPct >= 0 && timeElapsedRatio >= 150;
     }
 }

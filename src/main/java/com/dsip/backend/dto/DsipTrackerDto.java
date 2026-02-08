@@ -1,6 +1,9 @@
 package com.dsip.backend.dto;
 
+import com.dsip.backend.constants.DsipConstants;
+
 import com.dsip.backend.validation.ValidEnum;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -62,10 +65,29 @@ public class DsipTrackerDto {
     @Min(value = 1, message = "Total capital planned must be at least 1")
     private Double totalCapitalPlanned;
 
-    @JsonProperty("partition_days")
-    @NotNull(message = "Partition days is required")
-    @Min(value = 1, message = "Partition days must be at least 1")
+    // Internal field (stored in DB as days)
+    @JsonIgnore
     private Integer partitionDays;
+
+    // API field (exposed as months)
+    @JsonProperty("partition_months")
+    @NotNull(message = "Partition months is required")
+    @Min(value = 1, message = "Partition months must be at least 1")
+    private Integer partitionMonths;
+
+    // Conversion: months to days when setting partitionMonths
+    public void setPartitionMonths(Integer months) {
+        this.partitionMonths = months;
+        this.partitionDays = months != null ? months * DsipConstants.DAYS_PER_MONTH : null;
+    }
+
+    // Conversion: days to months when getting partitionMonths
+    public Integer getPartitionMonths() {
+        if (this.partitionMonths == null && this.partitionDays != null) {
+            this.partitionMonths = this.partitionDays / DsipConstants.DAYS_PER_MONTH;
+        }
+        return this.partitionMonths;
+    }
 
     @JsonProperty("deployment_style")
     @NotNull(message = "Deployment style is required")
@@ -89,6 +111,7 @@ public class DsipTrackerDto {
                 .convictionPeriodYears(tracker.getConvictionPeriodYears())
                 .totalCapitalPlanned(tracker.getTotalCapitalPlanned())
                 .partitionDays(tracker.getPartitionDays())
+                .partitionMonths(tracker.getPartitionDays() / DsipConstants.DAYS_PER_MONTH)
                 .deploymentStyle(tracker.getDeploymentStyle())
                 .baseConvictionScore(tracker.getBaseConvictionScore())
                 .initialInvestedAmount(tracker.getInitialInvestedAmount())

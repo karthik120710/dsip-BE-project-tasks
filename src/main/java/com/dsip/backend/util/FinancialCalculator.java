@@ -134,7 +134,8 @@ public class FinancialCalculator {
 
         double growthProgress = partition.getSuccessfulGrowthCount() / partition.getExpectedPartitionDays();
 
-        return (80 * (returnProgress) / 100) + (20 * (growthProgress) / 100);
+        return (0.8 * returnProgress)
+                + (0.2 * growthProgress);
     }
 
     public double calculateTimeProgressPercentage(com.dsip.backend.entity.DsipPartition partition) {

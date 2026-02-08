@@ -1,5 +1,7 @@
 package com.dsip.backend.service;
 
+import com.dsip.backend.constants.DsipConstants;
+
 import com.dsip.backend.mapper.DsipTrackerMapper;
 import com.dsip.backend.mapper.StockMapper;
 import com.dsip.backend.dto.DsipTrackerDto;
@@ -313,7 +315,7 @@ public class DsipTrackerService {
                                 .name(tracker.getStockName())
                                 .convictionPeriodYears(tracker.getConvictionPeriodYears())
                                 .totalCapitalPlanned(tracker.getTotalCapitalPlanned())
-                                .partitionDays(tracker.getPartitionDays())
+                                .partitionMonths(tracker.getPartitionDays() / DsipConstants.DAYS_PER_MONTH)
                                 .deploymentStyle(com.dsip.backend.enums.DeploymentStyle
                                                 .fromValue(tracker.getDeploymentStyle()).name())
                                 .baseConvictionScore(tracker.getBaseConvictionScore())

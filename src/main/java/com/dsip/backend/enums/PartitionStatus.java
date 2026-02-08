@@ -9,7 +9,9 @@ import java.util.Arrays;
 @RequiredArgsConstructor
 public enum PartitionStatus {
     ACTIVE(1),
-    COMPLETED(2);
+    COMPLETED(2),
+    KILL_SWITCH(3),
+    NEUTRAL(4);
 
     private final int value;
 

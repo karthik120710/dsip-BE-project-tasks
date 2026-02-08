@@ -25,8 +25,8 @@ public class TrackerDetailsDto {
     @JsonProperty("total_capital_planned")
     private Double totalCapitalPlanned;
 
-    @JsonProperty("partition_days")
-    private Integer partitionDays;
+    @JsonProperty("partition_months")
+    private Integer partitionMonths;
 
     @JsonProperty("deployment_style")
     private String deploymentStyle;

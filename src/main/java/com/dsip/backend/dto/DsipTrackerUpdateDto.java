@@ -1,8 +1,11 @@
 package com.dsip.backend.dto;
 
+import com.dsip.backend.constants.DsipConstants;
+
 import com.dsip.backend.enums.DeploymentStyle;
 import com.dsip.backend.enums.TrackerStatus;
 import com.dsip.backend.validation.ValidEnum;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -38,7 +41,18 @@ public class DsipTrackerUpdateDto {
     @Min(value = 1, message = "Conviction period years must be at least 1")
     private Double convictionPeriodYears;
 
-    @JsonProperty("partition_days")
-    @Min(value = 1, message = "Partition days must be at least 1")
+    // Internal field (stored in DB as days)
+    @JsonIgnore
     private Integer partitionDays;
+
+    // API field (exposed as months)
+    @JsonProperty("partition_months")
+    @Min(value = 1, message = "Partition months must be at least 1")
+    private Integer partitionMonths;
+
+    // Conversion: months to days when setting partitionMonths
+    public void setPartitionMonths(Integer months) {
+        this.partitionMonths = months;
+        this.partitionDays = months != null ? months * DsipConstants.DAYS_PER_MONTH : null;
+    }
 }

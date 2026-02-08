@@ -1,6 +1,7 @@
 package com.dsip.backend.service;
 
 import com.dsip.backend.dto.DsipExecutionRequestDto;
+import com.dsip.backend.dto.ExecutionResponseDto;
 import com.dsip.backend.entity.DsipExecution;
 import com.dsip.backend.entity.DsipPartition;
 import com.dsip.backend.entity.DsipTracker;
@@ -18,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -33,7 +33,7 @@ public class ExecutionService {
         private final DsipTrackerService dsipTrackerService;
 
         @Transactional
-        public Map<String, Object> executeTrade(Integer trackerId, UUID userId, DsipExecutionRequestDto dto) {
+        public ExecutionResponseDto executeTrade(Integer trackerId, UUID userId, DsipExecutionRequestDto dto) {
                 // 1. Validate Tracker Ownership
                 DsipTracker tracker = dsipTrackerMapper.findTrackerDetailsById(trackerId, userId);
                 if (tracker == null) {
@@ -77,54 +77,49 @@ public class ExecutionService {
                 // 6. Evaluate Lifecycle
 
                 PartitionEndDecision decision = lifecyclePolicy.evaluate(tracker, activePartition, latestMarketPrice);
-
-                boolean partitionCompleted = false;
                 if (decision.isShouldEnd()) {
                         // Mark current partition as completed in memory
-                        activePartition.setStatus(PartitionStatus.COMPLETED.getValue());
+                        activePartition.setStatus(decision.getReason().toPartitionStatus().getValue());
                         activePartition.setPartitionEndDate(Instant.now());
-                        partitionCompleted = true;
 
-                        // Create next partition
-                        List<DsipPartition> completed = dsipTrackerMapper.findCompletedPartitions(trackerId);
-                        List<Integer> pastPartitionLengths = completed.stream()
-                                        .map(p -> financialCalculator.calculateDaysBetween(p.getCreatedAt(),
-                                                        p.getPartitionEndDate()))
-                                        .filter(d -> d > 0)
-                                        .collect(java.util.stream.Collectors.toList());
-                        int nextPartitionIndex = activePartition.getPartitionIndex() + 1;
-                        PartitionPlan plan = allocationPolicy.createPlan(tracker, nextPartitionIndex,
-                                        pastPartitionLengths);
+                        if (decision.getReason().toPartitionStatus() == PartitionStatus.COMPLETED) {
+                                int nextPartitionIndex = activePartition.getPartitionIndex() + 1;
+                                List<DsipPartition> completed = dsipTrackerMapper.findCompletedPartitions(trackerId);
+                                List<Integer> pastPartitionLengths = completed.stream()
+                                                .map(p -> financialCalculator.calculateDaysBetween(p.getCreatedAt(),
+                                                                p.getPartitionEndDate()))
+                                                .filter(d -> d > 0)
+                                                .collect(java.util.stream.Collectors.toList());
 
-                        DsipPartition nextPartition = DsipPartition.builder()
-                                        .trackerId(trackerId)
-                                        .partitionIndex(plan.getPartitionIndex())
-                                        .expectedPartitionDays(plan.getExpectedLengthDays())
-                                        .partitionCapitalAllocated(plan.getAllocatedCapital())
-                                        .capitalInvestedSoFar(0.0)
-                                        .noOfSharesBought(0.0)
-                                        .successfulGrowthCount(0)
-                                        .status(PartitionStatus.ACTIVE.getValue())
-                                        .createdAt(Instant.now())
-                                        .build();
+                                PartitionPlan plan = allocationPolicy.createPlan(tracker, nextPartitionIndex,
+                                                pastPartitionLengths);
 
-                        dsipTrackerMapper.insertPartition(nextPartition);
+                                DsipPartition nextPartition = DsipPartition.builder()
+                                                .trackerId(trackerId)
+                                                .partitionIndex(plan.getPartitionIndex())
+                                                .expectedPartitionDays(plan.getExpectedLengthDays())
+                                                .partitionCapitalAllocated(plan.getAllocatedCapital())
+                                                .capitalInvestedSoFar(0.0)
+                                                .noOfSharesBought(0.0)
+                                                .successfulGrowthCount(0)
+                                                .status(PartitionStatus.ACTIVE.getValue())
+                                                .createdAt(Instant.now())
+                                                .build();
 
-                        // Update tracker's active partition index
-                        tracker.setActivePartitionIndex(nextPartitionIndex);
+                                dsipTrackerMapper.insertPartition(nextPartition);
+                                tracker.setActivePartitionIndex(nextPartitionIndex);
 
-                        log.info("Partition {} ended with reason {}, created partition {}",
-                                        activePartition.getPartitionIndex(), decision.getReason(), nextPartitionIndex);
+                        }
                 }
 
                 // Final Persist of State to Database
                 dsipTrackerMapper.updatePartition(activePartition);
                 dsipTrackerMapper.updateTracker(tracker);
 
-                return Map.of(
-                                "status", "EXECUTED",
-                                "partition_completed", partitionCompleted,
-                                "end_reason", decision.getReason() != null ? decision.getReason().name() : "N/A");
+                return ExecutionResponseDto.builder()
+                                .status("EXECUTED")
+                                .endReason(decision.getReason())
+                                .build();
         }
 
         /**
