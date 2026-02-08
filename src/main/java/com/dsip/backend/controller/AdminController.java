@@ -88,13 +88,12 @@ public class AdminController {
     public ResponseEntity<Map<String, String>> removeWhitelistedEmail(@PathVariable String email) {
         boolean removed = whitelistService.removeEmail(email);
 
-        if (removed) {
-            log.info("Email {} removed from whitelist by admin", email);
-            return ResponseEntity.ok(Map.of("message", "Email removed from whitelist"));
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Email not found in whitelist"));
+        if (!removed) {
+            throw new com.dsip.backend.exception.WhitelistEmailNotFoundException(email);
         }
+
+        log.info("Email {} removed from whitelist by admin", email);
+        return ResponseEntity.ok(Map.of("message", "Email removed from whitelist"));
     }
 
     @GetMapping("/whitelist/check/{email}")

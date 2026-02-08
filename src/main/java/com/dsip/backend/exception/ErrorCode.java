@@ -1,0 +1,44 @@
+package com.dsip.backend.exception;
+
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+
+@Getter
+@RequiredArgsConstructor
+public enum ErrorCode {
+    // Validation Errors (400)
+    VALIDATION_FAILED(ErrorType.VALIDATION_ERROR, "VALIDATION_FAILED", HttpStatus.BAD_REQUEST),
+    MISSING_PARAMETER(ErrorType.VALIDATION_ERROR, "MISSING_PARAMETER", HttpStatus.BAD_REQUEST),
+    INVALID_PARAMETER(ErrorType.VALIDATION_ERROR, "INVALID_PARAMETER", HttpStatus.BAD_REQUEST),
+    INVALID_JSON(ErrorType.VALIDATION_ERROR, "INVALID_JSON", HttpStatus.BAD_REQUEST),
+
+    // Client Errors - Not Found (404)
+    TRACKER_NOT_FOUND(ErrorType.CLIENT_ERROR, "TRACKER_NOT_FOUND", HttpStatus.NOT_FOUND),
+    PARTITION_NOT_FOUND(ErrorType.CLIENT_ERROR, "PARTITION_NOT_FOUND", HttpStatus.NOT_FOUND),
+    STOCK_NOT_FOUND(ErrorType.CLIENT_ERROR, "STOCK_NOT_FOUND", HttpStatus.NOT_FOUND),
+    USER_NOT_FOUND(ErrorType.CLIENT_ERROR, "USER_NOT_FOUND", HttpStatus.NOT_FOUND),
+    WHITELIST_EMAIL_NOT_FOUND(ErrorType.CLIENT_ERROR, "WHITELIST_EMAIL_NOT_FOUND", HttpStatus.NOT_FOUND),
+    RESOURCE_NOT_FOUND(ErrorType.CLIENT_ERROR, "RESOURCE_NOT_FOUND", HttpStatus.NOT_FOUND),
+
+    // Client Errors - Forbidden (403)
+    UNAUTHORIZED_ACCESS(ErrorType.CLIENT_ERROR, "UNAUTHORIZED_ACCESS", HttpStatus.FORBIDDEN),
+
+    // Client Errors - Conflict (409)
+    DUPLICATE_TRACKER(ErrorType.CLIENT_ERROR, "DUPLICATE_TRACKER", HttpStatus.CONFLICT),
+    PARTITION_ALREADY_COMPLETED(ErrorType.CLIENT_ERROR, "PARTITION_ALREADY_COMPLETED", HttpStatus.CONFLICT),
+
+    // Client Errors - Bad Request (400)
+    INVALID_EXECUTION(ErrorType.CLIENT_ERROR, "INVALID_EXECUTION", HttpStatus.BAD_REQUEST),
+    INVALID_TRACKER_UPDATE(ErrorType.CLIENT_ERROR, "INVALID_TRACKER_UPDATE", HttpStatus.BAD_REQUEST),
+    INVALID_CAPITAL_UPDATE(ErrorType.CLIENT_ERROR, "INVALID_CAPITAL_UPDATE", HttpStatus.BAD_REQUEST),
+    INVALID_ARGUMENT(ErrorType.CLIENT_ERROR, "INVALID_ARGUMENT", HttpStatus.BAD_REQUEST),
+
+    // Server Errors (500, 503)
+    STOCK_PRICE_FETCH_FAILED(ErrorType.SERVER_ERROR, "STOCK_PRICE_FETCH_FAILED", HttpStatus.SERVICE_UNAVAILABLE),
+    INTERNAL_ERROR(ErrorType.SERVER_ERROR, "INTERNAL_ERROR", HttpStatus.INTERNAL_SERVER_ERROR);
+
+    private final ErrorType type;
+    private final String code;
+    private final HttpStatus httpStatus;
+}

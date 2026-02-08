@@ -27,10 +27,10 @@ public class UserController {
     public ResponseEntity<UserDto> getCurrentUser(@AuthenticationPrincipal OAuth2User principal) {
         String email = principal.getAttribute("email");
 
-        Optional<User> user = userService.findByEmail(email);
+        User user = userService.findByEmail(email)
+                .orElseThrow(() -> new com.dsip.backend.exception.UserNotFoundException(email));
 
-        return user.map(u -> ResponseEntity.ok(UserDto.fromEntity(u)))
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        return ResponseEntity.ok(UserDto.fromEntity(user));
     }
 
     @GetMapping("/sessions/count")

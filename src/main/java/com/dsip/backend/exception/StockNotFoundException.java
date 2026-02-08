@@ -1,7 +1,7 @@
 package com.dsip.backend.exception;
 
-public class StockNotFoundException extends RuntimeException {
+public class StockNotFoundException extends DsipException {
     public StockNotFoundException(String symbol) {
-        super("Stock not found: " + symbol);
+        super(ErrorCode.STOCK_NOT_FOUND, "Stock not found: " + symbol);
     }
 }
