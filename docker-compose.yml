@@ -83,6 +83,9 @@ services:
       LOG_LEVEL_SECURITY: INFO
       LOG_LEVEL_SESSION: INFO
 
+      # Spring Profile
+      SPRING_PROFILES_ACTIVE: local
+
     depends_on:
       postgres:
         condition: service_healthy

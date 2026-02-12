@@ -56,7 +56,7 @@ spring:
 mybatis:
   mapper-locations: classpath:mapper/**/*.xml
   type-aliases-package: com.dsip.backend
-  type-handlers-package: com.dsip.backend.config
+  type-handlers-package: com.dsip.backend.typehandler
   configuration:
     map-underscore-to-camel-case: true
     default-fetch-size: 100
@@ -100,13 +100,47 @@ app:
 dsip:
   trading-days-per-year: ${DSIP_TRADING_DAYS_PER_YEAR:252}
   phase-count: ${DSIP_PHASE_COUNT:3}
-  target-return-per-partition: ${DSIP_TARGET_RETURN:0.20}
+  target-return-per-partition-percentage: ${DSIP_TARGET_RETURN:24}
   return-weight: ${DSIP_RETURN_WEIGHT:0.8}
   growth-weight: ${DSIP_GROWTH_WEIGHT:0.2}
+
+  # Opportunity multiplier configuration
+  avg-deviation-normalization-factor: ${DSIP_AVG_DEV_NORM:0.10}
+  lock-in-normalization-factor: ${DSIP_LOCKIN_NORM:0.08}
+  avg-deviation-weight: ${DSIP_AVG_DEV_WEIGHT:0.65}
+  lock-in-weight: ${DSIP_LOCKIN_WEIGHT:0.35}
+  opportunity-multiplier-min: ${DSIP_OPP_MULT_MIN:0.7}
+  opportunity-multiplier-max-normal: ${DSIP_OPP_MULT_MAX:1.4}
+  opportunity-multiplier-max-abnormal-dip: ${DSIP_OPP_MULT_MAX_DIP:2.0}
+
+  # Contingency multiplier configuration
+  contingency-multiplier-max: ${DSIP_CONT_MULT_MAX:1.1}
+  contingency-multiplier-min: ${DSIP_CONT_MULT_MIN:0.7}
+  contingency-decay-factor: ${DSIP_CONT_DECAY:0.4}
+
+  # Lifecycle thresholds
+  success-progress-threshold: ${DSIP_SUCCESS_PROGRESS:0.80}
+  success-time-threshold: ${DSIP_SUCCESS_TIME:1.0}
+  success-capital-threshold: ${DSIP_SUCCESS_CAPITAL:0.90}
+  kill-return-threshold: ${DSIP_KILL_RETURN:-30.0}
+  kill-time-threshold: ${DSIP_KILL_TIME:2.0}
+  neutral-time-threshold: ${DSIP_NEUTRAL_TIME:1.5}
+
+  # Load factor weights by deployment style
   load-factor:
     gradual: ${DSIP_LOAD_FACTOR_GRADUAL:0.33,0.33,0.33}
     moderate: ${DSIP_LOAD_FACTOR_MODERATE:0.42,0.33,0.24}
     aggressive: ${DSIP_LOAD_FACTOR_AGGRESSIVE:0.51,0.24,0.24}
+
+  # Historical data generator configuration
+  data:
+    output-dir: ${DSIP_DATA_OUTPUT_DIR:./data/historical}
+    default-period: ${DSIP_DATA_DEFAULT_PERIOD:3Y}
+    yahoo-finance:
+      timeout-seconds: ${DSIP_YAHOO_TIMEOUT:30}
+      retry-count: ${DSIP_YAHOO_RETRY:3}
+      retry-delay-ms: ${DSIP_YAHOO_RETRY_DELAY:1000}
+      base-url: https://query1.finance.yahoo.com/v7/finance/download
 
 logging:
   level:

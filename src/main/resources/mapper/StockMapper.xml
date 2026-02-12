@@ -10,13 +10,14 @@
         <result property="stockSymbol" column="stock_symbol"/>
         <result property="stockName" column="stock_name"/>
         <result property="listedExchange" column="listed_exchange"/>
+        <result property="stockType" column="stock_type" typeHandler="com.dsip.backend.typehandler.StockTypeHandler"/>
         <result property="lastDateMarketClosingPrice" column="last_date_market_closing_price"/>
         <result property="lastUpdatedDate" column="last_updated_date"/>
     </resultMap>
 
     <!-- SQL Fragments -->
     <sql id="stockColumns">
-        id, stock_symbol, stock_name, listed_exchange, last_date_market_closing_price, last_updated_date
+        id, stock_symbol, stock_name, listed_exchange, stock_type, last_date_market_closing_price, last_updated_date
     </sql>
 
     <!-- Select Queries -->
@@ -50,11 +51,12 @@
 
     <!-- Insert Query -->
     <insert id="insert" parameterType="com.dsip.backend.entity.Stock" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO stocks (stock_symbol, stock_name, listed_exchange, last_date_market_closing_price, last_updated_date)
+        INSERT INTO stocks (stock_symbol, stock_name, listed_exchange, stock_type, last_date_market_closing_price, last_updated_date)
         VALUES (
             #{stockSymbol},
             #{stockName},
             #{listedExchange},
+            #{stockType, typeHandler=com.dsip.backend.typehandler.StockTypeHandler},
             #{lastDateMarketClosingPrice},
             #{lastUpdatedDate}
         )
@@ -65,6 +67,7 @@
         UPDATE stocks
         SET stock_name = #{stockName},
             listed_exchange = #{listedExchange},
+            stock_type = #{stockType, typeHandler=com.dsip.backend.typehandler.StockTypeHandler},
             last_date_market_closing_price = #{lastDateMarketClosingPrice},
             last_updated_date = #{lastUpdatedDate}
         WHERE stock_symbol = #{stockSymbol}

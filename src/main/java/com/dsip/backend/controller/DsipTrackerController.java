@@ -5,9 +5,11 @@ import com.dsip.backend.dto.DsipTrackerDto;
 import com.dsip.backend.dto.DsipTrackerUpdateDto;
 import com.dsip.backend.dto.DsipExecutionRequestDto;
 import com.dsip.backend.dto.ExecutionResponseDto;
+import com.dsip.backend.dto.RecommendationResponseDto;
 import com.dsip.backend.entity.User;
 import com.dsip.backend.service.DsipTrackerService;
 import com.dsip.backend.service.ExecutionService;
+import com.dsip.backend.service.RecommendationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +27,7 @@ public class DsipTrackerController {
 
     private final DsipTrackerService dsipTrackerService;
     private final ExecutionService executionService;
+    private final RecommendationService recommendationService;
 
     @PostMapping
     public ResponseEntity<DsipTrackerDto> createTracker(
@@ -74,6 +77,26 @@ public class DsipTrackerController {
 
         ExecutionResponseDto result = executionService.executeTrade(trackerId, user.getId(), request);
         return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Get daily investment recommendation for a tracker.
+     * Calculates recommended amount based on opportunity and contingency multipliers.
+     *
+     * @param user      current authenticated user
+     * @param trackerId the tracker ID
+     * @param lockInPct lock-in percentage (e.g., -5.0 for 5% below previous close)
+     * @return recommendation with breakdown of calculation signals
+     */
+    @GetMapping("/{trackerId}/recommendation")
+    public ResponseEntity<RecommendationResponseDto> getRecommendation(
+            @CurrentUser User user,
+            @PathVariable Integer trackerId,
+            @RequestParam("lock_in_pct") Double lockInPct) {
+
+        RecommendationResponseDto recommendation = recommendationService.getRecommendation(
+                trackerId, user.getId(), lockInPct);
+        return ResponseEntity.ok(recommendation);
     }
 
     @GetMapping("/{trackerId}/executions")

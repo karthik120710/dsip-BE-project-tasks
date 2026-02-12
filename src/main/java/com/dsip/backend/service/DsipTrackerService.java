@@ -468,6 +468,20 @@ public class DsipTrackerService {
                                 .build();
         }
 
+        /**
+         * Handle partition end action based on the partition's final status.
+         *
+         * Behavior:
+         * - SUCCESS: Create next partition if capital remains and within conviction period
+         * - KILL_SWITCH: Create next partition if capital remains and within conviction period
+         *                (previously deleted tracker, now continues investment)
+         * - NEUTRAL: Create next partition if capital remains and within conviction period
+         * - COMPLETED tracker if no more capital or conviction period ended
+         *
+         * @param trackerId      the tracker ID
+         * @param partitionIndex the partition index
+         * @param userId         the user ID for authorization
+         */
         @Transactional
         public void handlePartitionEndAction(Integer trackerId, Integer partitionIndex, UUID userId) {
                 DsipTracker tracker = dsipTrackerMapper.findTrackerById(trackerId)
@@ -482,54 +496,84 @@ public class DsipTrackerService {
 
                 PartitionStatus status = PartitionStatus.fromValue(partition.getStatus());
 
-                if (status == PartitionStatus.KILL_SWITCH) {
-                        deleteTracker(trackerId, userId);
-                        log.info("Tracker {} deleted due to KILL_SWITCH on partition {}", trackerId, partitionIndex);
-                } else if (status == PartitionStatus.NEUTRAL) {
-                        int nextPartitionIndex = partition.getPartitionIndex() + 1;
-
-                        // Check if next partition already exists to avoid duplicates
-                        if (dsipTrackerMapper.findPartitionByTrackerIdAndIndex(trackerId, nextPartitionIndex)
-                                        .isPresent()) {
-                                log.warn("Next partition {} already exists for tracker {}", nextPartitionIndex,
-                                                trackerId);
-                                return;
-                        }
-
-                        List<DsipPartition> completed = dsipTrackerMapper.findCompletedPartitions(trackerId);
-                        List<Integer> pastPartitionLengths = completed.stream()
-                                        .map(p -> financialCalculator.calculateDaysBetween(p.getCreatedAt(),
-                                                        p.getPartitionEndDate()))
-                                        .filter(d -> d > 0)
-                                        .collect(java.util.stream.Collectors.toList());
-
-                        PartitionPlan plan = allocationPolicy.createPlan(tracker, nextPartitionIndex,
-                                        pastPartitionLengths);
-
-                        DsipPartition nextPartition = DsipPartition.builder()
-                                        .trackerId(trackerId)
-                                        .partitionIndex(plan.getPartitionIndex())
-                                        .expectedPartitionDays(plan.getExpectedLengthDays())
-                                        .partitionCapitalAllocated(plan.getAllocatedCapital())
-                                        .capitalInvestedSoFar(0.0)
-                                        .noOfSharesBought(0.0)
-                                        .successfulGrowthCount(0)
-                                        .avgNegativeDeviation(0.0)
-                                        .negativeDeviationCount(0)
-                                        .maxNegativeDeviation(0.0)
-                                        .status(PartitionStatus.ACTIVE.getValue())
-                                        .createdAt(Instant.now())
-                                        .build();
-
-                        dsipTrackerMapper.insertPartition(nextPartition);
-                        tracker.setActivePartitionIndex(nextPartitionIndex);
-                        dsipTrackerMapper.updateTracker(tracker);
-
-                        log.info("Created new partition {} for tracker {} after NEUTRAL end of partition {}",
-                                        nextPartitionIndex, trackerId, partitionIndex);
-                } else {
-                        log.info("No end action required for partition {} with status {}", partitionIndex, status);
+                // Only process ended partitions (SUCCESS, KILL_SWITCH, NEUTRAL)
+                if (status == PartitionStatus.ACTIVE) {
+                        log.info("Partition {} is still active, no end action needed", partitionIndex);
+                        return;
                 }
+
+                // Check if we should create next partition
+                double remainingCapital = tracker.getTotalCapitalPlanned() - tracker.getTotalCapitalInvestedSoFar();
+                boolean hasRemainingCapital = remainingCapital > 0;
+
+                // Check if within conviction period
+                int convictionDays = (int) (tracker.getConvictionPeriodYears() * financialCalculator.getTradingDaysPerYear());
+                int daysElapsed = financialCalculator.calculateDaysBetween(tracker.getCreatedAt(), Instant.now());
+                boolean withinConvictionPeriod = daysElapsed < convictionDays;
+
+                log.info("Partition {} ended with status {}. RemainingCapital: {}, WithinConviction: {}",
+                                partitionIndex, status, remainingCapital, withinConvictionPeriod);
+
+                if (hasRemainingCapital && withinConvictionPeriod) {
+                        // Create next partition regardless of end reason (SUCCESS, KILL_SWITCH, or NEUTRAL)
+                        createNextPartition(tracker, partition);
+                } else {
+                        // No more capital or conviction period ended - complete the tracker
+                        tracker.setStatus(TrackerStatus.COMPLETED.getValue());
+                        dsipTrackerMapper.updateTracker(tracker);
+                        log.info("Tracker {} completed. RemainingCapital: {}, WithinConviction: {}",
+                                        trackerId, remainingCapital, withinConvictionPeriod);
+                }
+        }
+
+        /**
+         * Create next partition for a tracker after the current partition ends.
+         *
+         * @param tracker          the tracker
+         * @param currentPartition the current (ended) partition
+         */
+        private void createNextPartition(DsipTracker tracker, DsipPartition currentPartition) {
+                int nextPartitionIndex = currentPartition.getPartitionIndex() + 1;
+                Integer trackerId = tracker.getTrackerId();
+
+                // Check if next partition already exists to avoid duplicates
+                if (dsipTrackerMapper.findPartitionByTrackerIdAndIndex(trackerId, nextPartitionIndex).isPresent()) {
+                        log.warn("Next partition {} already exists for tracker {}", nextPartitionIndex, trackerId);
+                        return;
+                }
+
+                List<DsipPartition> completed = dsipTrackerMapper.findCompletedPartitions(trackerId);
+                List<Integer> pastPartitionLengths = completed.stream()
+                                .map(p -> financialCalculator.calculateDaysBetween(p.getCreatedAt(),
+                                                p.getPartitionEndDate()))
+                                .filter(d -> d > 0)
+                                .collect(java.util.stream.Collectors.toList());
+
+                PartitionPlan plan = allocationPolicy.createPlan(tracker, nextPartitionIndex, pastPartitionLengths);
+
+                DsipPartition nextPartition = DsipPartition.builder()
+                                .trackerId(trackerId)
+                                .partitionIndex(plan.getPartitionIndex())
+                                .expectedPartitionDays(plan.getExpectedLengthDays())
+                                .partitionCapitalAllocated(plan.getAllocatedCapital())
+                                .capitalInvestedSoFar(0.0)
+                                .noOfSharesBought(0.0)
+                                .successfulGrowthCount(0)
+                                .avgNegativeDeviation(0.0)
+                                .negativeDeviationCount(0)
+                                .maxNegativeDeviation(0.0)
+                                .status(PartitionStatus.ACTIVE.getValue())
+                                .createdAt(Instant.now())
+                                .build();
+
+                dsipTrackerMapper.insertPartition(nextPartition);
+                tracker.setActivePartitionIndex(nextPartitionIndex);
+                dsipTrackerMapper.updateTracker(tracker);
+
+                log.info("Created new partition {} for tracker {} after {} end of partition {}",
+                                nextPartitionIndex, trackerId,
+                                PartitionStatus.fromValue(currentPartition.getStatus()),
+                                currentPartition.getPartitionIndex());
         }
 
 }

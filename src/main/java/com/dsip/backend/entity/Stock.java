@@ -1,5 +1,6 @@
 package com.dsip.backend.entity;
 
+import com.dsip.backend.enums.StockType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -26,6 +27,16 @@ public class Stock {
 
     private Exchange listedExchange;
 
+    /**
+     * Stock classification that determines target return percentage.
+     * PENNY=24%, MIDCAP=21%, LARGECAP=15%, ETF=15%
+     */
+    private StockType stockType;
+
+    /**
+     * Previous day's closing price. Used for lock-in percentage calculations.
+     * Lock-in % = ((lockInPrice - lastDateMarketClosingPrice) / lastDateMarketClosingPrice) * 100
+     */
     private Double lastDateMarketClosingPrice;
 
     /**

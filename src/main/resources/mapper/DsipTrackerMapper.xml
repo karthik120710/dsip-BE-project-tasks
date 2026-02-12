@@ -46,6 +46,7 @@
         <result property="stockSymbol" column="stock_symbol"/>
         <result property="stockName" column="stock_name"/>
         <result property="currentPrice" column="last_date_market_closing_price"/>
+        <result property="stockType" column="stock_type"/>
     </resultMap>
 
     <!-- Partition Result Map -->
@@ -130,7 +131,8 @@
             t.created_at,
             s.stock_symbol,
             s.stock_name,
-            s.last_date_market_closing_price
+            s.last_date_market_closing_price,
+            s.stock_type
         FROM dsip_trackers t
         INNER JOIN stocks s ON t.stock_id = s.id
         WHERE t.user_id = #{userId}
@@ -261,7 +263,8 @@
             t.base_conviction_score, t.initial_invested_amount, t.initial_shares_held,
             t.status, t.active_partition_index, t.total_capital_invested_so_far,
             t.shares_held_so_far, t.is_fractional_shares_allowed, t.created_at,
-            s.stock_symbol, s.stock_name, s.last_date_market_closing_price
+            s.stock_symbol, s.stock_name, s.last_date_market_closing_price,
+            s.stock_type
         FROM dsip_trackers t
         JOIN stocks s ON t.stock_id = s.id
         WHERE t.tracker_id = #{trackerId} AND t.user_id = #{userId}

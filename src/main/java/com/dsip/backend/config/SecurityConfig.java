@@ -48,6 +48,10 @@ public class SecurityConfig {
                         // Stock DELETE and admin endpoints are protected by AdminApiKeyFilter
                         .requestMatchers(HttpMethod.DELETE, "/api/stocks/**").permitAll()
                         .requestMatchers("/api/admin/**").permitAll()
+                        // Test endpoints (restricted to dev/test/local profiles via @Profile)
+                        .requestMatchers("/api/test/**").permitAll()
+                        // Data generator endpoints (restricted to dev/test/local profiles via @Profile)
+                        .requestMatchers("/api/data/**").permitAll()
                         // All other API endpoints require authentication
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().authenticated()

@@ -40,5 +40,6 @@ public class DsipTracker {
     // Transient fields from stock join (not persisted)
     private String stockSymbol;
     private String stockName;
-    private Double currentPrice;
+    private Double currentPrice; // last_date_market_closing_price (prev day's close)
+    private Integer stockType; // StockType enum value (1=PENNY, 2=MIDCAP, 3=LARGECAP, 4=ETF)
 }

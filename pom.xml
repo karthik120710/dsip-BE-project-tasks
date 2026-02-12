@@ -95,6 +95,13 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- Ta4j - Technical Analysis Library for Yahoo Finance data -->
+        <dependency>
+            <groupId>org.ta4j</groupId>
+            <artifactId>ta4j-examples</artifactId>
+            <version>0.22.1</version>
+        </dependency>
     </dependencies>
 
     <build>

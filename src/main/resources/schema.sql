@@ -55,7 +55,10 @@ CREATE TABLE IF NOT EXISTS stocks (
     listed_exchange VARCHAR(10) NOT NULL CHECK (
         listed_exchange IN ('US', 'NSE', 'BSE')
     ),
-    last_date_market_closing_price DOUBLE PRECISION,
+    stock_type SMALLINT NOT NULL DEFAULT 2 CHECK (
+        stock_type IN (1, 2, 3, 4)
+    ), -- 1=PENNY, 2=MIDCAP, 3=LARGECAP, 4=ETF
+    last_date_market_closing_price DOUBLE PRECISION, -- Previous day's closing price (used for lock-in calculations)
     last_updated_date TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT stocks_symbol_unique UNIQUE (stock_symbol)
 );

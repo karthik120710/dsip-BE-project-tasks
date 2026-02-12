@@ -1,4 +1,4 @@
-package com.dsip.backend.config;
+package com.dsip.backend.typehandler;
 
 import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
