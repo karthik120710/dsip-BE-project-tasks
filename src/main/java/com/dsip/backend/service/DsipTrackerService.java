@@ -487,6 +487,18 @@ public class DsipTrackerService {
          */
         @Transactional
         public void handlePartitionEndAction(Integer trackerId, Integer partitionIndex, UUID userId) {
+                handlePartitionEndAction(trackerId, partitionIndex, userId, null);
+        }
+
+        /**
+         * Handle partition end action with an optional simulation date.
+         * When simulationDate is provided, it is used instead of Instant.now() for
+         * conviction period calculation and new partition timestamps.
+         */
+        public void handlePartitionEndAction(Integer trackerId, Integer partitionIndex, UUID userId,
+                        Instant simulationDate) {
+                Instant effectiveNow = simulationDate != null ? simulationDate : Instant.now();
+
                 DsipTracker tracker = dsipTrackerMapper.findTrackerById(trackerId)
                                 .orElseThrow(() -> new TrackerNotFoundException(trackerId));
 
@@ -512,7 +524,7 @@ public class DsipTrackerService {
                 // Check if within conviction period
                 int convictionDays = (int) (tracker.getConvictionPeriodYears()
                                 * financialCalculator.getTradingDaysPerYear());
-                int daysElapsed = financialCalculator.calculateDaysBetween(tracker.getCreatedAt(), Instant.now());
+                int daysElapsed = financialCalculator.calculateDaysBetween(tracker.getCreatedAt(), effectiveNow);
                 boolean withinConvictionPeriod = daysElapsed < convictionDays;
 
                 log.info("Partition {} ended with status {}. RemainingCapital: {}, WithinConviction: {}",
@@ -521,7 +533,7 @@ public class DsipTrackerService {
                 if (hasRemainingCapital && withinConvictionPeriod) {
                         // Create next partition regardless of end reason (SUCCESS, KILL_SWITCH, or
                         // NEUTRAL)
-                        createNextPartition(tracker, partition);
+                        createNextPartition(tracker, partition, effectiveNow);
                 } else {
                         // No more capital or conviction period ended - complete the tracker
                         tracker.setStatus(TrackerStatus.COMPLETED.getValue());
@@ -537,7 +549,7 @@ public class DsipTrackerService {
          * @param tracker          the tracker
          * @param currentPartition the current (ended) partition
          */
-        private void createNextPartition(DsipTracker tracker, DsipPartition currentPartition) {
+        private void createNextPartition(DsipTracker tracker, DsipPartition currentPartition, Instant effectiveNow) {
                 int nextPartitionIndex = currentPartition.getPartitionIndex() + 1;
                 Integer trackerId = tracker.getTrackerId();
 
@@ -563,7 +575,7 @@ public class DsipTrackerService {
                                 .negativeDeviationCount(0)
                                 .maxNegativeDeviation(0.0)
                                 .status(PartitionStatus.ACTIVE.getValue())
-                                .createdAt(Instant.now())
+                                .createdAt(effectiveNow)
                                 .build();
 
                 dsipTrackerMapper.insertPartition(nextPartition);

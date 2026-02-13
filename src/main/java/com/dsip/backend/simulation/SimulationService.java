@@ -570,12 +570,16 @@ public class SimulationService {
                                                SimulationConfig config, List<SimulationResult.PartitionResult> results) {
         int nextIndex = previous.getPartitionIndex() + 1;
 
-        List<Integer> pastLengths = results.stream()
-                .map(SimulationResult.PartitionResult::getDaysActive)
-                .filter(d -> d > 0)
+        Instant baseTime = Instant.now();
+        List<DsipPartition> pastPartitions = results.stream()
+                .filter(r -> r.getDaysActive() > 0)
+                .map(r -> DsipPartition.builder()
+                        .createdAt(baseTime)
+                        .partitionEndDate(baseTime.plus(r.getDaysActive(), ChronoUnit.DAYS))
+                        .build())
                 .toList();
 
-        PartitionPlan plan = allocationPolicy.createPlan(tracker, nextIndex, pastLengths);
+        PartitionPlan plan = allocationPolicy.createPlan(tracker, nextIndex, pastPartitions);
 
         return DsipPartition.builder()
                 .partitionId(0)

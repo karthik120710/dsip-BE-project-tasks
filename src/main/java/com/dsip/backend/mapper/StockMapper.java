@@ -63,6 +63,12 @@ public interface StockMapper {
     int update(Stock stock);
 
     /**
+     * Updates only the market closing price for a stock by its ID.
+     * Used in simulation to override the price with CSV's prev_close value.
+     */
+    int updateMarketPrice(@Param("id") Long id, @Param("price") Double price);
+
+    /**
      * Deletes a stock by its symbol.
      *
      * @param stockSymbol the stock symbol to delete

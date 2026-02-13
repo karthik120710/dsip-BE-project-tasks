@@ -73,6 +73,14 @@
         WHERE stock_symbol = #{stockSymbol}
     </update>
 
+    <!-- Update market price only (for simulation) -->
+    <update id="updateMarketPrice">
+        UPDATE stocks
+        SET last_date_market_closing_price = #{price},
+            last_updated_date = NOW()
+        WHERE id = #{id}
+    </update>
+
     <!-- Delete Query -->
     <delete id="deleteByStockSymbol">
         DELETE FROM stocks WHERE stock_symbol = #{stockSymbol}

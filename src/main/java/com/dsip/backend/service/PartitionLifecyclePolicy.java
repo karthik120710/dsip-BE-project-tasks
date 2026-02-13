@@ -19,18 +19,23 @@ public class PartitionLifecyclePolicy {
     private final FinancialCalculator financialCalculator;
 
     public PartitionEndDecision evaluate(DsipTracker tracker, DsipPartition partition, double marketPrice) {
+        return evaluate(tracker, partition, marketPrice, Instant.now());
+    }
+
+    public PartitionEndDecision evaluate(DsipTracker tracker, DsipPartition partition, double marketPrice,
+            Instant asOf) {
         // Calculate all metrics once to avoid redundant calculations
 
         StockType stockType = StockType.fromValue(tracker.getStockType());
         double partitionProgress = financialCalculator.calculatePartitionProgressPercentage(partition, marketPrice,
                 stockType);
-        double timeProgress = financialCalculator.calculateTimeProgressPercentage(partition);
+        double timeProgress = financialCalculator.calculateTimeProgressPercentage(partition, asOf);
         double capitalProgress = financialCalculator.calculateCapitalProgressPercentage(partition);
         double cumulativeReturn = financialCalculator.cumulativeReturnPercentage(
                 partition.getNoOfSharesBought(),
                 partition.getCapitalInvestedSoFar(),
                 marketPrice);
-        double daysElapsed = financialCalculator.calculateDaysBetween(partition.getCreatedAt(), Instant.now());
+        double daysElapsed = financialCalculator.calculateDaysBetween(partition.getCreatedAt(), asOf);
 
         if (isSuccessCondition(partitionProgress, timeProgress, capitalProgress))
             return PartitionEndDecision.end(EndReason.SUCCESS);

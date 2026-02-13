@@ -287,6 +287,24 @@
         ORDER BY created_at ASC
     </select>
 
+    <!-- Simulation date overrides -->
+    <update id="updateTrackerCreatedAt">
+        UPDATE dsip_trackers SET created_at = #{createdAt} WHERE tracker_id = #{trackerId}
+    </update>
+
+    <update id="updatePartitionCreatedAt">
+        UPDATE dsip_partitions SET created_at = #{createdAt} WHERE partition_id = #{partitionId}
+    </update>
+
+    <update id="updateLatestExecutionCreatedAt">
+        UPDATE dsip_executions SET created_at = #{createdAt}
+        WHERE execution_id = (
+            SELECT execution_id FROM dsip_executions
+            WHERE tracker_id = #{trackerId}
+            ORDER BY execution_id DESC LIMIT 1
+        )
+    </update>
+
     <delete id="deleteExecutionsByTrackerId">
         DELETE FROM dsip_executions WHERE tracker_id = #{trackerId}
     </delete>

@@ -47,6 +47,9 @@ public class FinancialCalculator {
     public double round(double value, int places) {
         if (places < 0)
             throw new IllegalArgumentException();
+        if (Double.isNaN(value) || Double.isInfinite(value)) {
+            return 0.0;
+        }
 
         BigDecimal bd = BigDecimal.valueOf(value);
         bd = bd.setScale(places, RoundingMode.HALF_UP);
@@ -92,6 +95,9 @@ public class FinancialCalculator {
     }
 
     public double cumulativeReturnPercentage(double shares, double amount, double marketPrice) {
+        if (shares == 0 || amount == 0) {
+            return 0.0;
+        }
         double amountForOneShare = amount / shares;
         return calculateProfitPercentage(marketPrice, amountForOneShare);
     }
@@ -122,7 +128,11 @@ public class FinancialCalculator {
     }
 
     public double calculateTimeProgressPercentage(com.dsip.backend.entity.DsipPartition partition) {
-        double daysElapsed = this.calculateDaysBetween(partition.getCreatedAt(), Instant.now());
+        return calculateTimeProgressPercentage(partition, Instant.now());
+    }
+
+    public double calculateTimeProgressPercentage(com.dsip.backend.entity.DsipPartition partition, Instant asOf) {
+        double daysElapsed = this.calculateDaysBetween(partition.getCreatedAt(), asOf);
         return (daysElapsed / partition.getExpectedPartitionDays()) * 100;
     }
 

@@ -2,10 +2,7 @@ package com.dsip.backend.test.controller;
 
 import com.dsip.backend.auth.CurrentUser;
 import com.dsip.backend.entity.User;
-import com.dsip.backend.test.dto.ExecuteWorkflowRequest;
-import com.dsip.backend.test.dto.ExecuteWorkflowResponse;
-import com.dsip.backend.test.dto.GeneratePriceDataRequest;
-import com.dsip.backend.test.dto.GeneratePriceDataResponse;
+import com.dsip.backend.test.dto.*;
 import com.dsip.backend.test.service.TestWorkflowService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -60,6 +57,32 @@ public class TestWorkflowController {
         } catch (Exception e) {
             log.error("Failed to generate price data for {}: {}", request.getSymbol(), e.getMessage(), e);
             return ResponseEntity.ok(GeneratePriceDataResponse.error(request.getSymbol(), e.getMessage()));
+        }
+    }
+
+    /**
+     * Populate recommendation amounts into the price data CSV.
+     *
+     * Loops through each row in the CSV, calls the recommendation API,
+     * and writes the recommended amount as executed_amount back to the CSV.
+     * Must be called before execute-workflow.
+     */
+    @PostMapping("/populate-recommendations")
+    public ResponseEntity<PopulateRecommendationsResponse> populateRecommendations(
+            @Valid @RequestBody ExecuteWorkflowRequest request,
+            @CurrentUser User user) {
+
+        UUID userId = user != null ? user.getId() : null;
+        log.info("Populating recommendations for tracker: {} using CSV: {} (user: {})",
+                request.getTrackerId(), request.getCsvFilePath(),
+                user != null ? user.getEmail() : "test-user");
+
+        try {
+            PopulateRecommendationsResponse response = testWorkflowService.populateRecommendations(request, userId);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Failed to populate recommendations for tracker {}: {}", request.getTrackerId(), e.getMessage(), e);
+            return ResponseEntity.ok(PopulateRecommendationsResponse.error(e.getMessage()));
         }
     }
 

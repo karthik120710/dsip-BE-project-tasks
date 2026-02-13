@@ -35,6 +35,19 @@ public class ExecutionService {
 
         @Transactional
         public ExecutionResponseDto executeTrade(Integer trackerId, UUID userId, DsipExecutionRequestDto dto) {
+                return executeTrade(trackerId, userId, dto, null);
+        }
+
+        /**
+         * Execute a trade with an optional simulation date.
+         * When simulationDate is provided, it is used instead of Instant.now() for
+         * lifecycle evaluation and record timestamps (for simulation/testing).
+         */
+        @Transactional
+        public ExecutionResponseDto executeTrade(Integer trackerId, UUID userId, DsipExecutionRequestDto dto,
+                        Instant simulationDate) {
+                Instant effectiveNow = simulationDate != null ? simulationDate : Instant.now();
+
                 // 1. Validate Tracker Ownership
                 DsipTracker tracker = dsipTrackerMapper.findTrackerDetailsById(trackerId, userId);
                 if (tracker == null) {
@@ -66,7 +79,7 @@ public class ExecutionService {
                                 .convictionOverride(dto.getConvictionOverride())
                                 .executedAmount(dto.getExecutedAmount())
                                 .executionPrice(dto.getExecutionPrice())
-                                .createdAt(Instant.now())
+                                .createdAt(effectiveNow)
                                 .build();
 
                 dsipTrackerMapper.insertExecution(execution);
@@ -78,11 +91,12 @@ public class ExecutionService {
 
                 // 6. Evaluate Lifecycle
 
-                PartitionEndDecision decision = lifecyclePolicy.evaluate(tracker, activePartition, latestMarketPrice);
+                PartitionEndDecision decision = lifecyclePolicy.evaluate(tracker, activePartition, latestMarketPrice,
+                                effectiveNow);
                 if (decision.isShouldEnd()) {
                         // Mark current partition as completed in memory
                         activePartition.setStatus(decision.getReason().toPartitionStatus().getValue());
-                        activePartition.setPartitionEndDate(Instant.now());
+                        activePartition.setPartitionEndDate(effectiveNow);
 
                         if (decision.getReason().toPartitionStatus() == PartitionStatus.COMPLETED) {
                                 int nextPartitionIndex = activePartition.getPartitionIndex() + 1;
@@ -103,7 +117,7 @@ public class ExecutionService {
                                                 .negativeDeviationCount(0)
                                                 .maxNegativeDeviation(0.0)
                                                 .status(PartitionStatus.ACTIVE.getValue())
-                                                .createdAt(Instant.now())
+                                                .createdAt(effectiveNow)
                                                 .build();
 
                                 dsipTrackerMapper.insertPartition(nextPartition);

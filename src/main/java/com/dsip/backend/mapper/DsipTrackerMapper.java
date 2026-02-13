@@ -7,6 +7,7 @@ import com.dsip.backend.entity.DsipTracker;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -65,6 +66,13 @@ public interface DsipTrackerMapper {
 
         List<com.dsip.backend.dto.TrackerDetailsDto.HistoryItem> findExecutionHistoryByTrackerId(
                         @Param("trackerId") Integer trackerId);
+
+        // Simulation date overrides
+        void updateTrackerCreatedAt(@Param("trackerId") Integer trackerId, @Param("createdAt") Instant createdAt);
+
+        void updatePartitionCreatedAt(@Param("partitionId") Integer partitionId, @Param("createdAt") Instant createdAt);
+
+        void updateLatestExecutionCreatedAt(@Param("trackerId") Integer trackerId, @Param("createdAt") Instant createdAt);
 
         // Deletion Operations
         int deleteExecutionsByTrackerId(@Param("trackerId") Integer trackerId);
