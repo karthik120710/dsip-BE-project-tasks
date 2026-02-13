@@ -116,22 +116,9 @@ public class FinancialCalculator {
 
     public double calculatePartitionProgressPercentage(com.dsip.backend.entity.DsipPartition partition,
             double marketPrice, StockType stockType) {
-        if (partition.getCapitalInvestedSoFar() == null ||
-                partition.getCapitalInvestedSoFar() == 0.0 ||
-                partition.getNoOfSharesBought() == null ||
-                partition.getNoOfSharesBought() == 0.0) {
-            return 0.0;
-        }
-        double currentCumulativeReturnPercentage = cumulativeReturnPercentage(partition.getNoOfSharesBought(),
-                partition.getCapitalInvestedSoFar(), marketPrice);
-
-        double returnProgress = currentCumulativeReturnPercentage
-                / dsipProperties.targetReturnPerPartitionPercentage(stockType);
-
-        double growthProgress = partition.getSuccessfulGrowthCount() / partition.getExpectedPartitionDays();
-
-        return (0.8 * returnProgress)
-                + (0.2 * growthProgress);
+        double returnProgress = calculateReturnProgressPercentage(partition, marketPrice, stockType);
+        double growthProgress = calculateGrowthPersistencePercentage(partition) / 100.0;
+        return (0.8 * returnProgress) + (0.2 * growthProgress);
     }
 
     public double calculateTimeProgressPercentage(com.dsip.backend.entity.DsipPartition partition) {
@@ -143,8 +130,26 @@ public class FinancialCalculator {
         return (partition.getCapitalInvestedSoFar() / partition.getPartitionCapitalAllocated()) * 100;
     }
 
-    public double calculateGrowthPresistencePercentage(com.dsip.backend.entity.DsipPartition partition) {
-        return (partition.getSuccessfulGrowthCount() / partition.getExpectedPartitionDays()) * 100;
+    public double calculateReturnProgressPercentage(com.dsip.backend.entity.DsipPartition partition, double marketPrice,
+            StockType stockType) {
+        if (partition.getCapitalInvestedSoFar() == null ||
+                partition.getCapitalInvestedSoFar() == 0.0 ||
+                partition.getNoOfSharesBought() == null ||
+                partition.getNoOfSharesBought() == 0.0) {
+            return 0.0;
+        }
+        double currentCumulativeReturnPercentage = cumulativeReturnPercentage(partition.getNoOfSharesBought(),
+                partition.getCapitalInvestedSoFar(), marketPrice);
+
+        return currentCumulativeReturnPercentage / dsipProperties.targetReturnPerPartitionPercentage(stockType);
+    }
+
+    public double calculateGrowthPersistencePercentage(com.dsip.backend.entity.DsipPartition partition) {
+        if (partition.getSuccessfulGrowthCount() == null || partition.getExpectedPartitionDays() == null
+                || partition.getExpectedPartitionDays() == 0) {
+            return 0.0;
+        }
+        return ((double) partition.getSuccessfulGrowthCount() / partition.getExpectedPartitionDays()) * 100;
     }
 
 }
