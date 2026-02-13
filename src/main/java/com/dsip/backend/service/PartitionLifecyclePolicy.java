@@ -3,6 +3,7 @@ package com.dsip.backend.service;
 import com.dsip.backend.entity.DsipPartition;
 import com.dsip.backend.entity.DsipTracker;
 import com.dsip.backend.enums.EndReason;
+import com.dsip.backend.enums.StockType;
 import com.dsip.backend.model.PartitionEndDecision;
 import com.dsip.backend.util.FinancialCalculator;
 
@@ -19,7 +20,10 @@ public class PartitionLifecyclePolicy {
 
     public PartitionEndDecision evaluate(DsipTracker tracker, DsipPartition partition, double marketPrice) {
         // Calculate all metrics once to avoid redundant calculations
-        double partitionProgress = financialCalculator.calculatePartitionProgressPercentage(partition, marketPrice);
+
+        StockType stockType = StockType.fromValue(tracker.getStockType());
+        double partitionProgress = financialCalculator.calculatePartitionProgressPercentage(partition, marketPrice,
+                stockType);
         double timeProgress = financialCalculator.calculateTimeProgressPercentage(partition);
         double capitalProgress = financialCalculator.calculateCapitalProgressPercentage(partition);
         double cumulativeReturn = financialCalculator.cumulativeReturnPercentage(

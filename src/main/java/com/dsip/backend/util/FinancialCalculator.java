@@ -2,6 +2,8 @@
 package com.dsip.backend.util;
 
 import com.dsip.backend.config.DsipProperties;
+import com.dsip.backend.enums.StockType;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -113,7 +115,7 @@ public class FinancialCalculator {
     }
 
     public double calculatePartitionProgressPercentage(com.dsip.backend.entity.DsipPartition partition,
-            double marketPrice) {
+            double marketPrice, StockType stockType) {
         if (partition.getCapitalInvestedSoFar() == null ||
                 partition.getCapitalInvestedSoFar() == 0.0 ||
                 partition.getNoOfSharesBought() == null ||
@@ -122,8 +124,9 @@ public class FinancialCalculator {
         }
         double currentCumulativeReturnPercentage = cumulativeReturnPercentage(partition.getNoOfSharesBought(),
                 partition.getCapitalInvestedSoFar(), marketPrice);
+
         double returnProgress = currentCumulativeReturnPercentage
-                / dsipProperties.getTargetReturnPerPartitionPercentage();
+                / dsipProperties.targetReturnPerPartitionPercentage(stockType);
 
         double growthProgress = partition.getSuccessfulGrowthCount() / partition.getExpectedPartitionDays();
 

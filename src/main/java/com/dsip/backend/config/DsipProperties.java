@@ -17,12 +17,9 @@ public class DsipProperties {
     private int tradingDaysPerYear = 252;
     private int phaseCount = 3;
 
-    /**
-     * @deprecated Use {@link #getTargetReturnForStockType(StockType)} instead.
-     * This is kept for backward compatibility but should not be used for new code.
-     */
-    @Deprecated
-    private double targetReturnPerPartitionPercentage = 24; // 24% default
+    public double targetReturnPerPartitionPercentage(StockType stockType) {
+        return getTargetReturnPercentageForStockType(stockType);
+    }
 
     private double returnWeight = 0.8;
     private double growthWeight = 0.2;
@@ -60,8 +57,7 @@ public class DsipProperties {
             StockType.PENNY, 0.24,
             StockType.MIDCAP, 0.21,
             StockType.LARGECAP, 0.15,
-            StockType.ETF, 0.15
-    );
+            StockType.ETF, 0.15);
 
     /**
      * Get target return for a stock type.
