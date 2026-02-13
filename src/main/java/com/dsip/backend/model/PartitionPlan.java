@@ -6,6 +6,5 @@ import lombok.Value;
 public class PartitionPlan {
     int partitionIndex;
     int expectedLengthDays;
-    int phaseIndex;
     double allocatedCapital;
 }
