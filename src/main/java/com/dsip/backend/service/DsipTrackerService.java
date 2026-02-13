@@ -472,10 +472,13 @@ public class DsipTrackerService {
          * Handle partition end action based on the partition's final status.
          *
          * Behavior:
-         * - SUCCESS: Create next partition if capital remains and within conviction period
-         * - KILL_SWITCH: Create next partition if capital remains and within conviction period
-         *                (previously deleted tracker, now continues investment)
-         * - NEUTRAL: Create next partition if capital remains and within conviction period
+         * - SUCCESS: Create next partition if capital remains and within conviction
+         * period
+         * - KILL_SWITCH: Create next partition if capital remains and within conviction
+         * period
+         * (previously deleted tracker, now continues investment)
+         * - NEUTRAL: Create next partition if capital remains and within conviction
+         * period
          * - COMPLETED tracker if no more capital or conviction period ended
          *
          * @param trackerId      the tracker ID
@@ -507,7 +510,8 @@ public class DsipTrackerService {
                 boolean hasRemainingCapital = remainingCapital > 0;
 
                 // Check if within conviction period
-                int convictionDays = (int) (tracker.getConvictionPeriodYears() * financialCalculator.getTradingDaysPerYear());
+                int convictionDays = (int) (tracker.getConvictionPeriodYears()
+                                * financialCalculator.getTradingDaysPerYear());
                 int daysElapsed = financialCalculator.calculateDaysBetween(tracker.getCreatedAt(), Instant.now());
                 boolean withinConvictionPeriod = daysElapsed < convictionDays;
 
@@ -515,7 +519,8 @@ public class DsipTrackerService {
                                 partitionIndex, status, remainingCapital, withinConvictionPeriod);
 
                 if (hasRemainingCapital && withinConvictionPeriod) {
-                        // Create next partition regardless of end reason (SUCCESS, KILL_SWITCH, or NEUTRAL)
+                        // Create next partition regardless of end reason (SUCCESS, KILL_SWITCH, or
+                        // NEUTRAL)
                         createNextPartition(tracker, partition);
                 } else {
                         // No more capital or conviction period ended - complete the tracker
@@ -543,13 +548,8 @@ public class DsipTrackerService {
                 }
 
                 List<DsipPartition> completed = dsipTrackerMapper.findCompletedPartitions(trackerId);
-                List<Integer> pastPartitionLengths = completed.stream()
-                                .map(p -> financialCalculator.calculateDaysBetween(p.getCreatedAt(),
-                                                p.getPartitionEndDate()))
-                                .filter(d -> d > 0)
-                                .collect(java.util.stream.Collectors.toList());
 
-                PartitionPlan plan = allocationPolicy.createPlan(tracker, nextPartitionIndex, pastPartitionLengths);
+                PartitionPlan plan = allocationPolicy.createPlan(tracker, nextPartitionIndex, completed);
 
                 DsipPartition nextPartition = DsipPartition.builder()
                                 .trackerId(trackerId)
