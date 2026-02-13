@@ -1,10 +1,8 @@
 package com.dsip.backend.test.dto;
 
-import com.dsip.backend.enums.DeploymentStyle;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -27,51 +25,9 @@ public class ExecuteWorkflowRequest {
     private String csvFilePath;
 
     /**
-     * Stock symbol (must exist in the database).
+     * Tracker ID of the already-created DSIP tracker.
      */
-    @NotBlank(message = "Stock symbol is required")
-    @JsonProperty("stock_symbol")
-    private String stockSymbol;
-
-    // Tracker configuration with sensible defaults
-
-    /**
-     * Total capital to invest.
-     */
-    @JsonProperty("total_capital")
-    @Min(value = 1, message = "Total capital must be at least 1")
-    @Builder.Default
-    private Double totalCapital = 100000.0;
-
-    /**
-     * Conviction period in years.
-     */
-    @JsonProperty("conviction_period_years")
-    @Min(value = 1, message = "Conviction period must be at least 1 year")
-    @Builder.Default
-    private Double convictionPeriodYears = 2.0;
-
-    /**
-     * Partition duration in days.
-     */
-    @JsonProperty("partition_days")
-    @Min(value = 1, message = "Partition days must be at least 1")
-    @Builder.Default
-    private Integer partitionDays = 60;
-
-    /**
-     * Deployment style: GRADUAL, MODERATE, or AGGRESSIVE.
-     */
-    @JsonProperty("deployment_style")
-    @Builder.Default
-    private DeploymentStyle deploymentStyle = DeploymentStyle.MODERATE;
-
-    /**
-     * Base conviction score (0-100).
-     */
-    @JsonProperty("base_conviction_score")
-    @Min(value = 0, message = "Conviction score cannot be less than 0")
-    @Max(value = 100, message = "Conviction score cannot exceed 100")
-    @Builder.Default
-    private Integer baseConvictionScore = 80;
+    @NotNull(message = "Tracker ID is required")
+    @JsonProperty("tracker_id")
+    private Integer trackerId;
 }

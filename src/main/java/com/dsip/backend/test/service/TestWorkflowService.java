@@ -3,9 +3,9 @@ package com.dsip.backend.test.service;
 import com.dsip.backend.data.DataGeneratorProperties;
 import com.dsip.backend.data.HistoricalDataService;
 import com.dsip.backend.dto.DsipExecutionRequestDto;
-import com.dsip.backend.dto.DsipTrackerDto;
 import com.dsip.backend.dto.ExecutionResponseDto;
 import com.dsip.backend.dto.RecommendationResponseDto;
+import com.dsip.backend.dto.TrackerDetailsDto;
 import com.dsip.backend.entity.User;
 import com.dsip.backend.enums.EndReason;
 import com.dsip.backend.mapper.UserMapper;
@@ -86,14 +86,19 @@ public class TestWorkflowService {
      */
     public ExecuteWorkflowResponse executeWorkflow(ExecuteWorkflowRequest request, UUID userId) throws Exception {
         String csvFilePath = request.getCsvFilePath();
-        String stockSymbol = request.getStockSymbol().toUpperCase();
+        Integer trackerId = request.getTrackerId();
 
         // Use test user if no authenticated user
         if (userId == null) {
             userId = getOrCreateTestUser();
         }
 
-        log.info("Executing test workflow for {} using CSV: {} with userId: {}", stockSymbol, csvFilePath, userId);
+        // Fetch existing tracker details
+        TrackerDetailsDto trackerDetails = dsipTrackerService.getTrackerDetailsDto(trackerId, userId);
+        String stockSymbol = trackerDetails.getSymbol();
+        int convictionScore = trackerDetails.getBaseConvictionScore();
+
+        log.info("Executing test workflow for tracker {} ({}) using CSV: {}", trackerId, stockSymbol, csvFilePath);
 
         // Load price data from CSV
         List<TestPriceData> priceDataList = loadPriceDataFromCsv(csvFilePath);
@@ -102,28 +107,12 @@ public class TestWorkflowService {
             return ExecuteWorkflowResponse.error("No data found in CSV file");
         }
 
-        // Create tracker
-        DsipTrackerDto trackerDto = DsipTrackerDto.builder()
-                .stockSymbol(stockSymbol)
-                .totalCapitalPlanned(request.getTotalCapital())
-                .convictionPeriodYears(request.getConvictionPeriodYears())
-                .partitionDays(request.getPartitionDays())
-                .deploymentStyle(request.getDeploymentStyle())
-                .baseConvictionScore(request.getBaseConvictionScore())
-                .build();
-
-        DsipTrackerDto createdTracker = dsipTrackerService.createTracker(userId, trackerDto);
-        Integer trackerId = createdTracker.getTrackerId();
-
-        log.info("Created tracker {} for {}", trackerId, stockSymbol);
-
         // Execute workflow day by day
         List<ExecutionLogEntry> executionLog = new ArrayList<>();
-        int partitionsCreated = 1; // First partition created with tracker
+        int partitionsCreated = 0;
         double totalCapitalInvested = 0.0;
         double totalSharesAcquired = 0.0;
-        int currentPartitionIndex = 1;
-        int convictionScore = request.getBaseConvictionScore();
+        int currentPartitionIndex = trackerDetails.getActivePartitionIndex();
 
         for (int i = 0; i < priceDataList.size(); i++) {
             TestPriceData dayData = priceDataList.get(i);

@@ -87,15 +87,15 @@ public class TestWorkflowController {
             @CurrentUser User user) {
 
         UUID userId = user != null ? user.getId() : null;
-        log.info("Executing workflow for symbol: {} using CSV: {} (user: {})",
-                request.getStockSymbol(), request.getCsvFilePath(),
+        log.info("Executing workflow for tracker: {} using CSV: {} (user: {})",
+                request.getTrackerId(), request.getCsvFilePath(),
                 user != null ? user.getEmail() : "test-user");
 
         try {
             ExecuteWorkflowResponse response = testWorkflowService.executeWorkflow(request, userId);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("Failed to execute workflow for {}: {}", request.getStockSymbol(), e.getMessage(), e);
+            log.error("Failed to execute workflow for tracker {}: {}", request.getTrackerId(), e.getMessage(), e);
             return ResponseEntity.ok(ExecuteWorkflowResponse.error(e.getMessage()));
         }
     }
