@@ -4,6 +4,7 @@ import com.dsip.backend.dto.CompanyDetails;
 import com.dsip.backend.dto.StockPriceResponse;
 import com.dsip.backend.entity.Exchange;
 import com.dsip.backend.entity.Stock;
+import com.dsip.backend.enums.StockType;
 import com.dsip.backend.exception.StockPriceFetchException;
 import com.dsip.backend.mapper.StockMapper;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,12 @@ public class StockService {
 
     @Transactional
     public StockPriceResponse getClosingPrice(String symbol, Exchange exchange) {
+        if (exchange != Exchange.US) {
+            throw new IllegalArgumentException(
+                    "Currently only the US market is supported. Support for " + exchange
+                            + " and other markets will be available in a future update.");
+        }
+
         LocalDate todayUtc = LocalDate.now(ZoneOffset.UTC);
         log.info("Request received for stock: {}, exchange: {}, todayUTC: {}", symbol, exchange, todayUtc);
 
@@ -71,7 +78,9 @@ public class StockService {
 
         if (closePrice == null) {
             log.error("Failed to fetch closing price from API for symbol: {}", symbol);
-            throw new StockPriceFetchException(symbol, "No price data returned from " + exchange + " market API");
+            throw new StockPriceFetchException(symbol,
+                    "Stock '" + symbol + "' not found or price data is unavailable. "
+                            + "Please verify the symbol is a valid US market stock.");
         }
 
         Instant nowUtc = Instant.now();
@@ -85,6 +94,9 @@ public class StockService {
             stock.setListedExchange(exchange);
             stock.setLastDateMarketClosingPrice(closePrice);
             stock.setLastUpdatedDate(nowUtc);
+            if (stock.getStockType() == null) {
+                stock.setStockType(StockType.PENNY);
+            }
             stockMapper.update(stock);
             log.info("Stock {} updated in DB cache.", symbol);
         } else {
@@ -92,6 +104,7 @@ public class StockService {
                     .stockSymbol(symbol)
                     .stockName(companyDetails.getName())
                     .listedExchange(exchange)
+                    .stockType(StockType.PENNY)
                     .lastDateMarketClosingPrice(closePrice)
                     .lastUpdatedDate(nowUtc)
                     .build();
