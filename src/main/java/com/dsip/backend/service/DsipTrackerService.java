@@ -486,8 +486,9 @@ public class DsipTrackerService {
          * @param userId         the user ID for authorization
          */
         @Transactional
-        public void handlePartitionEndAction(Integer trackerId, Integer partitionIndex, UUID userId) {
-                handlePartitionEndAction(trackerId, partitionIndex, userId, null);
+        public com.dsip.backend.dto.PartitionEndActionResponseDto handlePartitionEndAction(Integer trackerId,
+                        Integer partitionIndex, UUID userId) {
+                return handlePartitionEndAction(trackerId, partitionIndex, userId, null);
         }
 
         /**
@@ -495,7 +496,8 @@ public class DsipTrackerService {
          * When simulationDate is provided, it is used instead of Instant.now() for
          * conviction period calculation and new partition timestamps.
          */
-        public void handlePartitionEndAction(Integer trackerId, Integer partitionIndex, UUID userId,
+        public com.dsip.backend.dto.PartitionEndActionResponseDto handlePartitionEndAction(Integer trackerId,
+                        Integer partitionIndex, UUID userId,
                         Instant simulationDate) {
                 Instant effectiveNow = simulationDate != null ? simulationDate : Instant.now();
 
@@ -514,7 +516,11 @@ public class DsipTrackerService {
                 // Only process ended partitions (SUCCESS, KILL_SWITCH, NEUTRAL)
                 if (status == PartitionStatus.ACTIVE) {
                         log.info("Partition {} is still active, no end action needed", partitionIndex);
-                        return;
+                        return com.dsip.backend.dto.PartitionEndActionResponseDto.builder()
+                                        .action("ALREADY_PROCESSED")
+                                        .message("This partition is still active. No action needed.")
+                                        .partitionIndex(partitionIndex)
+                                        .build();
                 }
 
                 // Check if we should create next partition
@@ -533,13 +539,28 @@ public class DsipTrackerService {
                 if (hasRemainingCapital && withinConvictionPeriod) {
                         // Create next partition regardless of end reason (SUCCESS, KILL_SWITCH, or
                         // NEUTRAL)
-                        createNextPartition(tracker, partition, effectiveNow);
+                        int nextPartitionIndex = createNextPartition(tracker, partition, effectiveNow);
+                        return com.dsip.backend.dto.PartitionEndActionResponseDto.builder()
+                                        .action("NEXT_PARTITION_CREATED")
+                                        .message("Cycle acknowledged. Starting next investment cycle.")
+                                        .partitionIndex(partitionIndex)
+                                        .newPartitionIndex(nextPartitionIndex)
+                                        .build();
                 } else {
                         // No more capital or conviction period ended - complete the tracker
                         tracker.setStatus(TrackerStatus.COMPLETED.getValue());
                         dsipTrackerMapper.updateTracker(tracker);
                         log.info("Tracker {} completed. RemainingCapital: {}, WithinConviction: {}",
                                         trackerId, remainingCapital, withinConvictionPeriod);
+
+                        String reason = !hasRemainingCapital
+                                        ? "All allocated capital has been deployed."
+                                        : "Conviction period has ended.";
+                        return com.dsip.backend.dto.PartitionEndActionResponseDto.builder()
+                                        .action("TRACKER_COMPLETED")
+                                        .message("Investment tracker completed. " + reason)
+                                        .partitionIndex(partitionIndex)
+                                        .build();
                 }
         }
 
@@ -548,15 +569,16 @@ public class DsipTrackerService {
          *
          * @param tracker          the tracker
          * @param currentPartition the current (ended) partition
+         * @return the new partition index
          */
-        private void createNextPartition(DsipTracker tracker, DsipPartition currentPartition, Instant effectiveNow) {
+        private int createNextPartition(DsipTracker tracker, DsipPartition currentPartition, Instant effectiveNow) {
                 int nextPartitionIndex = currentPartition.getPartitionIndex() + 1;
                 Integer trackerId = tracker.getTrackerId();
 
                 // Check if next partition already exists to avoid duplicates
                 if (dsipTrackerMapper.findPartitionByTrackerIdAndIndex(trackerId, nextPartitionIndex).isPresent()) {
                         log.warn("Next partition {} already exists for tracker {}", nextPartitionIndex, trackerId);
-                        return;
+                        return nextPartitionIndex;
                 }
 
                 List<DsipPartition> completed = dsipTrackerMapper.findCompletedPartitions(trackerId);
@@ -586,6 +608,8 @@ public class DsipTrackerService {
                                 nextPartitionIndex, trackerId,
                                 PartitionStatus.fromValue(currentPartition.getStatus()),
                                 currentPartition.getPartitionIndex());
+
+                return nextPartitionIndex;
         }
 
 }

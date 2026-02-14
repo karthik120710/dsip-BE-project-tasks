@@ -81,7 +81,8 @@ public class DsipTrackerController {
 
     /**
      * Get daily investment recommendation for a tracker.
-     * Calculates recommended amount based on opportunity and contingency multipliers.
+     * Calculates recommended amount based on opportunity and contingency
+     * multipliers.
      *
      * @param user      current authenticated user
      * @param trackerId the tracker ID
@@ -131,12 +132,13 @@ public class DsipTrackerController {
     }
 
     @PostMapping("/end-action")
-    public ResponseEntity<Void> endAction(
+    public ResponseEntity<com.dsip.backend.dto.PartitionEndActionResponseDto> endAction(
             @CurrentUser User user,
             @RequestParam Integer trackerId,
             @RequestParam Integer partitionIndex) {
 
-        dsipTrackerService.handlePartitionEndAction(trackerId, partitionIndex, user.getId());
-        return ResponseEntity.ok().build();
+        com.dsip.backend.dto.PartitionEndActionResponseDto response = dsipTrackerService
+                .handlePartitionEndAction(trackerId, partitionIndex, user.getId());
+        return ResponseEntity.ok(response);
     }
 }

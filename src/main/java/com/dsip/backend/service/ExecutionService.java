@@ -150,14 +150,24 @@ public class ExecutionService {
                                 activePartition.getCapitalInvestedSoFar(),
                                 latestMarketPrice);
 
-                return ExecutionResponseDto.builder()
-                                .status("EXECUTED")
-                                .code(decision.getReason().getCode())
-                                .title(decision.getReason().getTitle())
-                                .message(decision.getReason().buildMessage(deployedAmount, profitPct))
-                                .deployedAmount(deployedAmount)
-                                .profitPct(profitPct)
-                                .build();
+                // Build response based on whether partition ended
+                if (decision.isShouldEnd()) {
+                        return ExecutionResponseDto.builder()
+                                        .status("EXECUTED")
+                                        .code(decision.getReason().getCode())
+                                        .title(decision.getReason().getTitle())
+                                        .message(decision.getReason().buildMessage(deployedAmount, profitPct))
+                                        .deployedAmount(deployedAmount)
+                                        .profitPct(profitPct)
+                                        .build();
+                } else {
+                        return ExecutionResponseDto.builder()
+                                        .status("EXECUTED")
+                                        .code("ONGOING")
+                                        .deployedAmount(deployedAmount)
+                                        .profitPct(profitPct)
+                                        .build();
+                }
         }
 
         /**
