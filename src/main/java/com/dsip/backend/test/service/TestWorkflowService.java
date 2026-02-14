@@ -236,12 +236,15 @@ public class TestWorkflowService {
             if (executionResponse.getEndReason() != null) {
                 partitionStatus = executionResponse.getEndReason().name();
 
-                if (executionResponse.getEndReason() == EndReason.SUCCESS ||
-                    executionResponse.getEndReason() == EndReason.KILL_SWITCH ||
-                    executionResponse.getEndReason() == EndReason.NEUTRAL_PARTITION) {
+                EndReason endReason = executionResponse.getEndReason();
+                boolean isKillSwitch = endReason == EndReason.KILL_SWITCH_STAGNATION ||
+                        endReason == EndReason.KILL_SWITCH_POOR_GROWTH ||
+                        endReason == EndReason.KILL_SWITCH_ZOMBIE;
 
-                    if (executionResponse.getEndReason() == EndReason.KILL_SWITCH ||
-                        executionResponse.getEndReason() == EndReason.NEUTRAL_PARTITION) {
+                if (endReason == EndReason.SUCCESS || isKillSwitch ||
+                    endReason == EndReason.NEUTRAL_PARTITION) {
+
+                    if (isKillSwitch || endReason == EndReason.NEUTRAL_PARTITION) {
                         log.info("Calling end-action for partition {} ({})",
                                 currentPartitionIndex, executionResponse.getEndReason());
                         dsipTrackerService.handlePartitionEndAction(trackerId, currentPartitionIndex, userId, simulationDate);

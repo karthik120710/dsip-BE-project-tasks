@@ -248,7 +248,7 @@ public class SimulationService {
                 // Count partition outcomes
                 switch (decision.getReason()) {
                     case SUCCESS -> successCount++;
-                    case KILL_SWITCH -> killCount++;
+                    case KILL_SWITCH_STAGNATION, KILL_SWITCH_POOR_GROWTH, KILL_SWITCH_ZOMBIE -> killCount++;
                     case NEUTRAL_PARTITION -> neutralCount++;
                     default -> {}
                 }
@@ -467,7 +467,7 @@ public class SimulationService {
                 // Count partition outcomes
                 switch (decision.getReason()) {
                     case SUCCESS -> successCount++;
-                    case KILL_SWITCH -> killCount++;
+                    case KILL_SWITCH_STAGNATION, KILL_SWITCH_POOR_GROWTH, KILL_SWITCH_ZOMBIE -> killCount++;
                     case NEUTRAL_PARTITION -> neutralCount++;
                     default -> {}
                 }

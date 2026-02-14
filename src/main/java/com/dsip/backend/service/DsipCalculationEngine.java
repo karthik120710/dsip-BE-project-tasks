@@ -430,7 +430,7 @@ public class DsipCalculationEngine {
         // 2. KILL - Severe loss (hard -30% stop)
         if (cumulativeReturnPct <= dsipProperties.getKillReturnThreshold()) {
             return LifecycleResult.builder()
-                    .status(PartitionStatus.KILL_SWITCH)
+                    .status(PartitionStatus.KILL_SWITCH_POOR_GROWTH)
                     .shouldEnd(true)
                     .reason(String.format("KILL: Cumulative return (%.2f%%) <= %.0f%%",
                             cumulativeReturnPct, dsipProperties.getKillReturnThreshold()))
@@ -441,7 +441,7 @@ public class DsipCalculationEngine {
         // 3. KILL - Time exhaustion with negative return
         if (cumulativeReturnPct < 0 && timeProgress >= dsipProperties.getKillTimeThreshold()) {
             return LifecycleResult.builder()
-                    .status(PartitionStatus.KILL_SWITCH)
+                    .status(PartitionStatus.KILL_SWITCH_STAGNATION)
                     .shouldEnd(true)
                     .reason(String.format("KILL: Negative return (%.2f%%) with time progress >= %.0f%%",
                             cumulativeReturnPct, dsipProperties.getKillTimeThreshold() * 100))

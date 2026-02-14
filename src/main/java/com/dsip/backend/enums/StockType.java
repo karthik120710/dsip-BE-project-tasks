@@ -43,6 +43,22 @@ public enum StockType {
                 .orElseThrow(() -> new IllegalArgumentException("Unknown StockType value: " + value));
     }
 
+    /**
+     * Determines stock type based on market capitalization (in millions).
+     * - >= 10,000M → LARGECAP
+     * - >= 2,000M  → MIDCAP
+     * - < 2,000M   → PENNY (Small Cap)
+     */
+    public static StockType fromMarketCap(double marketCapMillions) {
+        if (marketCapMillions >= 10_000) {
+            return LARGECAP;
+        } else if (marketCapMillions >= 2_000) {
+            return MIDCAP;
+        } else {
+            return PENNY;
+        }
+    }
+
     @JsonCreator
     public static StockType fromKey(String key) {
         return Arrays.stream(values())

@@ -88,28 +88,28 @@ public class StockService {
         // Check if stock exists in DB (stale entry) — update it; otherwise insert
         Optional<Stock> existingStock = stockMapper.findByStockSymbol(symbol);
 
+        StockType resolvedType = resolveStockType(companyDetails);
+
         if (existingStock.isPresent()) {
             Stock stock = existingStock.get();
             stock.setStockName(companyDetails.getName());
             stock.setListedExchange(exchange);
             stock.setLastDateMarketClosingPrice(closePrice);
             stock.setLastUpdatedDate(nowUtc);
-            if (stock.getStockType() == null) {
-                stock.setStockType(StockType.PENNY);
-            }
+            stock.setStockType(resolvedType);
             stockMapper.update(stock);
-            log.info("Stock {} updated in DB cache.", symbol);
+            log.info("Stock {} updated in DB cache with type {}.", symbol, resolvedType);
         } else {
             Stock newStock = Stock.builder()
                     .stockSymbol(symbol)
                     .stockName(companyDetails.getName())
                     .listedExchange(exchange)
-                    .stockType(StockType.PENNY)
+                    .stockType(resolvedType)
                     .lastDateMarketClosingPrice(closePrice)
                     .lastUpdatedDate(nowUtc)
                     .build();
             stockMapper.insert(newStock);
-            log.info("Stock {} saved to DB cache.", symbol);
+            log.info("Stock {} saved to DB cache with type {}.", symbol, resolvedType);
         }
 
         return StockPriceResponse.builder()
@@ -120,6 +120,17 @@ public class StockService {
                 .source("API")
                 .company(companyDetails)
                 .build();
+    }
+
+    private StockType resolveStockType(CompanyDetails companyDetails) {
+        Double marketCap = companyDetails.getMarketCapitalization();
+        if (marketCap != null && marketCap > 0) {
+            StockType type = StockType.fromMarketCap(marketCap);
+            log.info("Resolved stock type for {}: {} (marketCap={}M)", companyDetails.getSymbol(), type, marketCap);
+            return type;
+        }
+        log.warn("Market cap unavailable for {}, defaulting to PENNY", companyDetails.getSymbol());
+        return StockType.PENNY;
     }
 
     @Transactional(readOnly = true)

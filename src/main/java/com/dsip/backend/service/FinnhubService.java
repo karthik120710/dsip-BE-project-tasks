@@ -77,12 +77,15 @@ public class FinnhubService {
 
             JsonNode root = objectMapper.readTree(response);
 
+            Double marketCap = root.has("marketCapitalization") ? root.get("marketCapitalization").asDouble() : null;
+
             return CompanyDetails.builder()
                     .name(root.has("name") ? root.get("name").asText() : symbol)
                     .symbol(symbol)
                     .exchange(root.has("exchange") ? root.get("exchange").asText() : "US")
                     .industry(root.has("finnhubIndustry") ? root.get("finnhubIndustry").asText() : "N/A")
                     .country(root.has("country") ? root.get("country").asText() : "US")
+                    .marketCapitalization(marketCap)
                     .build();
 
         } catch (StockPriceFetchException e) {

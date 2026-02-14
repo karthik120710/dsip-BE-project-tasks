@@ -38,4 +38,9 @@ public class CompanyDetails {
      * Country of listing.
      */
     private String country;
+
+    /**
+     * Market capitalization in millions (USD).
+     */
+    private Double marketCapitalization;
 }
