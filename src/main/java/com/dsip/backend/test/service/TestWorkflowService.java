@@ -258,6 +258,13 @@ public class TestWorkflowService {
                 }
             }
 
+            // Fetch partition state after execution for capital tracking
+            DsipPartition currentPartition = dsipTrackerMapper.findPartitionByTrackerIdAndIndex(trackerId,
+                    partitionStatus.equals("ACTIVE") ? currentPartitionIndex : currentPartitionIndex - 1)
+                    .orElse(null);
+            double partCapAllocated = currentPartition != null ? currentPartition.getPartitionCapitalAllocated() : 0.0;
+            double capInvestedSoFar = currentPartition != null ? currentPartition.getCapitalInvestedSoFar() : 0.0;
+
             ExecutionLogEntry logEntry = ExecutionLogEntry.builder()
                     .date(dayData.getDate())
                     .partitionIndex(currentPartitionIndex)
@@ -269,6 +276,9 @@ public class TestWorkflowService {
                     .totalShares(totalSharesAcquired)
                     .portfolioValue(totalSharesAcquired * dayData.getClose())
                     .partitionStatus(partitionStatus)
+                    .partitionCapitalAllocated(partCapAllocated)
+                    .capitalInvestedSoFar(capInvestedSoFar)
+                    .remainingCapital(partCapAllocated - capInvestedSoFar)
                     .build();
             executionLog.add(logEntry);
 
@@ -433,12 +443,12 @@ public class TestWorkflowService {
 
         try (BufferedWriter writer = Files.newBufferedWriter(csvPath)) {
             // Header
-            writer.write("date,partition_index,lock_in_pct,conviction_score,executed_price,recommended_amount,shares_acquired,total_shares,portfolio_value,partition_status");
+            writer.write("date,partition_index,lock_in_pct,conviction_score,executed_price,recommended_amount,shares_acquired,total_shares,portfolio_value,partition_status,partition_capital_allocated,capital_invested_so_far,remaining_capital");
             writer.newLine();
 
             // Data rows
             for (ExecutionLogEntry entry : log) {
-                writer.write(String.format("%s,%d,%.4f,%d,%.2f,%.2f,%.4f,%.4f,%.2f,%s",
+                writer.write(String.format("%s,%d,%.4f,%d,%.2f,%.2f,%.4f,%.4f,%.2f,%s,%.2f,%.2f,%.2f",
                         entry.getDate(),
                         entry.getPartitionIndex(),
                         entry.getLockInPct(),
@@ -448,7 +458,10 @@ public class TestWorkflowService {
                         entry.getSharesAcquired(),
                         entry.getTotalShares(),
                         entry.getPortfolioValue(),
-                        entry.getPartitionStatus()));
+                        entry.getPartitionStatus(),
+                        entry.getPartitionCapitalAllocated(),
+                        entry.getCapitalInvestedSoFar(),
+                        entry.getRemainingCapital()));
                 writer.newLine();
             }
         }
@@ -564,5 +577,8 @@ public class TestWorkflowService {
         private double totalShares;
         private double portfolioValue;
         private String partitionStatus;
+        private double partitionCapitalAllocated;
+        private double capitalInvestedSoFar;
+        private double remainingCapital;
     }
 }
