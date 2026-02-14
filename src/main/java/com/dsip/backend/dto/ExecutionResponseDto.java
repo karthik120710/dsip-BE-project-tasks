@@ -1,6 +1,5 @@
 package com.dsip.backend.dto;
 
-import com.dsip.backend.enums.EndReason;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
@@ -15,16 +14,38 @@ import lombok.Value;
 public class ExecutionResponseDto {
 
     /**
-     * Execution status: always "EXECUTED" when successful.
+     * Execution status: "EXECUTED" or "SKIPPED".
      */
     @JsonProperty("status")
     String status;
 
     /**
-     * The reason the partition ended (if it ended).
-     * Possible values: SUCCESS, KILL_SWITCH, NEUTRAL_PARTITION, or null if
-     * partition is still active.
+     * Machine-readable code for the end reason.
      */
-    @JsonProperty("end_reason")
-    EndReason endReason;
+    @JsonProperty("code")
+    String code;
+
+    /**
+     * User-friendly title with emoji prefix.
+     */
+    @JsonProperty("title")
+    String title;
+
+    /**
+     * Detailed explanation message with metrics.
+     */
+    @JsonProperty("message")
+    String message;
+
+    /**
+     * Capital deployed in the partition.
+     */
+    @JsonProperty("deployed_amount")
+    Double deployedAmount;
+
+    /**
+     * Net profit percentage.
+     */
+    @JsonProperty("profit_pct")
+    Double profitPct;
 }

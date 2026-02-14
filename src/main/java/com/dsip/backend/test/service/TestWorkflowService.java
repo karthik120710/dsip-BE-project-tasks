@@ -91,9 +91,11 @@ public class TestWorkflowService {
 
     /**
      * Populate recommendation amounts into the price data CSV.
-     * Loops through each row, calls the recommendation API, and writes executed_amount back to the CSV.
+     * Loops through each row, calls the recommendation API, and writes
+     * executed_amount back to the CSV.
      */
-    public PopulateRecommendationsResponse populateRecommendations(ExecuteWorkflowRequest request, UUID userId) throws Exception {
+    public PopulateRecommendationsResponse populateRecommendations(ExecuteWorkflowRequest request, UUID userId)
+            throws Exception {
         String csvFilePath = request.getCsvFilePath();
         Integer trackerId = request.getTrackerId();
 
@@ -149,7 +151,8 @@ public class TestWorkflowService {
     }
 
     /**
-     * Execute the DSIP workflow using the price data CSV with pre-populated executed_amount values.
+     * Execute the DSIP workflow using the price data CSV with pre-populated
+     * executed_amount values.
      */
     public ExecuteWorkflowResponse executeWorkflow(ExecuteWorkflowRequest request, UUID userId) throws Exception {
         String csvFilePath = request.getCsvFilePath();
@@ -175,14 +178,16 @@ public class TestWorkflowService {
             return ExecuteWorkflowResponse.error("No data found in CSV file");
         }
 
-        // Set simulation start date: update tracker and first partition created_at to first CSV date
+        // Set simulation start date: update tracker and first partition created_at to
+        // first CSV date
         Instant firstDayInstant = priceDataList.get(0).getDate().atStartOfDay(ZoneId.systemDefault()).toInstant();
         dsipTrackerMapper.updateTrackerCreatedAt(trackerId, firstDayInstant);
         DsipPartition firstPartition = dsipTrackerMapper
                 .findPartitionByTrackerIdAndIndex(trackerId, trackerDetails.getActivePartitionIndex())
                 .orElseThrow(() -> new PartitionNotFoundException(trackerId));
         dsipTrackerMapper.updatePartitionCreatedAt(firstPartition.getPartitionId(), firstDayInstant);
-        log.info("Set simulation start date to {} for tracker {} and partition {}", priceDataList.get(0).getDate(), trackerId, firstPartition.getPartitionId());
+        log.info("Set simulation start date to {} for tracker {} and partition {}", priceDataList.get(0).getDate(),
+                trackerId, firstPartition.getPartitionId());
 
         // Execute workflow day by day using executed_amount from CSV
         List<ExecutionLogEntry> executionLog = new ArrayList<>();
@@ -233,27 +238,28 @@ public class TestWorkflowService {
 
             // Check if partition ended
             String partitionStatus = "ACTIVE";
-            if (executionResponse.getEndReason() != null) {
-                partitionStatus = executionResponse.getEndReason().name();
+            if (executionResponse.getCode() != null) {
+                EndReason endReason = EndReason.fromString(executionResponse.getCode());
+                partitionStatus = endReason.name();
 
-                EndReason endReason = executionResponse.getEndReason();
                 boolean isKillSwitch = endReason == EndReason.KILL_SWITCH_STAGNATION ||
                         endReason == EndReason.KILL_SWITCH_POOR_GROWTH ||
                         endReason == EndReason.KILL_SWITCH_ZOMBIE;
 
                 if (endReason == EndReason.SUCCESS || isKillSwitch ||
-                    endReason == EndReason.NEUTRAL_PARTITION) {
+                        endReason == EndReason.NEUTRAL_PARTITION) {
 
                     if (isKillSwitch || endReason == EndReason.NEUTRAL_PARTITION) {
                         log.info("Calling end-action for partition {} ({})",
-                                currentPartitionIndex, executionResponse.getEndReason());
-                        dsipTrackerService.handlePartitionEndAction(trackerId, currentPartitionIndex, userId, simulationDate);
+                                currentPartitionIndex, endReason);
+                        dsipTrackerService.handlePartitionEndAction(trackerId, currentPartitionIndex, userId,
+                                simulationDate);
                     }
 
                     currentPartitionIndex++;
                     partitionsCreated++;
                     log.info("Partition ended with {}. New partition index: {}",
-                            executionResponse.getEndReason(), currentPartitionIndex);
+                            endReason, currentPartitionIndex);
 
                 }
             }
@@ -363,7 +369,7 @@ public class TestWorkflowService {
      * Write price data to CSV file.
      */
     private Path writePriceDataCsv(String symbol, List<TestPriceData> data,
-                                    LocalDate startDate, LocalDate endDate) throws IOException {
+            LocalDate startDate, LocalDate endDate) throws IOException {
         Path outputDir = Paths.get(dataGeneratorProperties.getOutputDir(), TEST_DATA_SUBDIR);
         Files.createDirectories(outputDir);
 
@@ -373,7 +379,8 @@ public class TestWorkflowService {
 
         try (BufferedWriter writer = Files.newBufferedWriter(csvPath)) {
             // Header
-            writer.write("date,open,high,low,close,prev_close,lock_in_pct,executed_price,conviction_score,executed_amount");
+            writer.write(
+                    "date,open,high,low,close,prev_close,lock_in_pct,executed_price,conviction_score,executed_amount");
             writer.newLine();
 
             // Data rows
@@ -443,7 +450,8 @@ public class TestWorkflowService {
 
         try (BufferedWriter writer = Files.newBufferedWriter(csvPath)) {
             // Header
-            writer.write("date,partition_index,lock_in_pct,conviction_score,executed_price,recommended_amount,shares_acquired,total_shares,portfolio_value,partition_status,partition_capital_allocated,capital_invested_so_far,remaining_capital");
+            writer.write(
+                    "date,partition_index,lock_in_pct,conviction_score,executed_price,recommended_amount,shares_acquired,total_shares,portfolio_value,partition_status,partition_capital_allocated,capital_invested_so_far,remaining_capital");
             writer.newLine();
 
             // Data rows
@@ -475,7 +483,8 @@ public class TestWorkflowService {
     private void rewritePriceDataCsv(Path csvPath, List<TestPriceData> data) throws IOException {
         try (BufferedWriter writer = Files.newBufferedWriter(csvPath)) {
             // Header
-            writer.write("date,open,high,low,close,prev_close,lock_in_pct,executed_price,conviction_score,executed_amount");
+            writer.write(
+                    "date,open,high,low,close,prev_close,lock_in_pct,executed_price,conviction_score,executed_amount");
             writer.newLine();
 
             // Data rows

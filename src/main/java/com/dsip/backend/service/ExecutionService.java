@@ -59,17 +59,30 @@ public class ExecutionService {
                                 .findPartitionByTrackerIdAndIndex(trackerId, tracker.getActivePartitionIndex())
                                 .orElseThrow(() -> new PartitionNotFoundException(trackerId));
 
+                // Get latest market price (needed for metrics calculation)
+                double latestMarketPrice = dsipTrackerService.getLatestMarketPrice(trackerId);
+
                 // Check if partition is already ended
                 if (activePartition.getStatus() != PartitionStatus.ACTIVE.getValue()) {
                         PartitionStatus status = PartitionStatus.fromValue(activePartition.getStatus());
                         EndReason reason = EndReason.fromPartitionStatus(status);
+
+                        // Calculate metrics for historical partition
+                        double deployedAmount = activePartition.getCapitalInvestedSoFar();
+                        double profitPct = financialCalculator.cumulativeReturnPercentage(
+                                        activePartition.getNoOfSharesBought(),
+                                        activePartition.getCapitalInvestedSoFar(),
+                                        latestMarketPrice);
+
                         return ExecutionResponseDto.builder()
                                         .status("SKIPPED")
-                                        .endReason(reason)
+                                        .code(reason.getCode())
+                                        .title(reason.getTitle())
+                                        .message(reason.buildMessage(deployedAmount, profitPct))
+                                        .deployedAmount(deployedAmount)
+                                        .profitPct(profitPct)
                                         .build();
                 }
-
-                double latestMarketPrice = dsipTrackerService.getLatestMarketPrice(trackerId);
 
                 // 4. Insert Execution
                 DsipExecution execution = DsipExecution.builder()
@@ -130,9 +143,20 @@ public class ExecutionService {
                 dsipTrackerMapper.updatePartition(activePartition);
                 dsipTrackerMapper.updateTracker(tracker);
 
+                // Calculate metrics for response
+                double deployedAmount = activePartition.getCapitalInvestedSoFar();
+                double profitPct = financialCalculator.cumulativeReturnPercentage(
+                                activePartition.getNoOfSharesBought(),
+                                activePartition.getCapitalInvestedSoFar(),
+                                latestMarketPrice);
+
                 return ExecutionResponseDto.builder()
                                 .status("EXECUTED")
-                                .endReason(decision.getReason())
+                                .code(decision.getReason().getCode())
+                                .title(decision.getReason().getTitle())
+                                .message(decision.getReason().buildMessage(deployedAmount, profitPct))
+                                .deployedAmount(deployedAmount)
+                                .profitPct(profitPct)
                                 .build();
         }
 
