@@ -12,8 +12,10 @@ import java.util.Arrays;
 public enum PartitionStatus {
     ACTIVE(1),
     COMPLETED(2),
-    KILL_SWITCH(3),
-    NEUTRAL(4);
+    KILL_SWITCH_STAGNATION(3),
+    KILL_SWITCH_POOR_GROWTH(4),
+    KILL_SWITCH_ZOMBIE(5),
+    NEUTRAL(6);
 
     private final int value;
 

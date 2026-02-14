@@ -40,14 +40,15 @@ public class PartitionLifecyclePolicy {
         if (isSuccessCondition(partitionProgress, timeProgress, capitalProgress))
             return PartitionEndDecision.end(EndReason.SUCCESS);
 
-        if (isKillSwitchStagnation(timeProgress, cumulativeReturn)
-                || isKillSwitchPoorGrowth(capitalProgress, partitionProgress)) {
-            return PartitionEndDecision.end(EndReason.KILL_SWITCH);
-        }
+        if (isKillSwitchStagnation(timeProgress, cumulativeReturn))
+            return PartitionEndDecision.end(EndReason.KILL_SWITCH_STAGNATION);
+
+        if (isKillSwitchPoorGrowth(capitalProgress, partitionProgress))
+            return PartitionEndDecision.end(EndReason.KILL_SWITCH_POOR_GROWTH);
 
         if (isZombieRemainder(partition, daysElapsed))
             return cumulativeReturn >= 0 ? PartitionEndDecision.end(EndReason.NEUTRAL_PARTITION)
-                    : PartitionEndDecision.end(EndReason.KILL_SWITCH);
+                    : PartitionEndDecision.end(EndReason.KILL_SWITCH_ZOMBIE);
 
         if (isNeutralByTimeExhaustion(cumulativeReturn, timeProgress))
             return PartitionEndDecision.end(EndReason.NEUTRAL_PARTITION);

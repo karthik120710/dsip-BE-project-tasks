@@ -38,12 +38,7 @@ public class PartitionAllocationPolicy {
         if (pastPartitions == null || pastPartitions.isEmpty()) {
             return defaultPartitionDays;
         }
-        List<Integer> sorted = pastPartitions.stream()
-                .map(p -> financialCalculator.calculateDaysBetween(p.getCreatedAt(),
-                        p.getPartitionEndDate()))
-                .filter(d -> d > 0)
-                .sorted()
-                .collect(java.util.stream.Collectors.toList());
+        List<Integer> sorted = getPartitionDays(pastPartitions);
         int size = sorted.size();
         if (size % 2 == 0) {
             return (sorted.get(size / 2 - 1) + sorted.get(size / 2)) / 2;
@@ -52,10 +47,24 @@ public class PartitionAllocationPolicy {
         }
     }
 
+    private List<Integer> getPartitionDays(List<DsipPartition> pastPartitions) {
+        List<Integer> sorted = pastPartitions.stream()
+                .map(p -> financialCalculator.calculateDaysBetween(p.getCreatedAt(),
+                        p.getPartitionEndDate()))
+                .filter(d -> d > 0)
+                .sorted()
+                .collect(java.util.stream.Collectors.toList());
+        return sorted;
+    }
+
     private int computeTotalPartitions(DsipTracker tracker, List<DsipPartition> pastPartitions) {
-        double capitalRemaining = tracker.getTotalCapitalPlanned() - tracker.getTotalCapitalInvestedSoFar();
-        double medianBurned = tracker.getTotalCapitalInvestedSoFar() / pastPartitions.size();
-        return (int) Math.floor(capitalRemaining / medianBurned) + pastPartitions.size();
+
+        double pastPartitionsMedianLength = resolveExpectedLength(tracker.getPartitionDays(), pastPartitions);
+        int totalDaysPassed = getPartitionDays(pastPartitions).stream().mapToInt(Integer::intValue).sum();
+        double trackerDays = tracker.getConvictionPeriodYears() * dsipProperties.getTradingDaysPerYear();
+        double remainingTime = trackerDays - totalDaysPassed;
+
+        return (int) Math.floor(remainingTime / pastPartitionsMedianLength) + pastPartitions.size();
     }
 
     private double resolvePhaseWeight(DsipTracker tracker, List<DsipPartition> pastPartitions) {
