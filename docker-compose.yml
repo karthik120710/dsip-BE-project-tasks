@@ -8,9 +8,15 @@ services:
     container_name: dsip-backend
     ports:
       - "8080:8080"
+      - "5005:5005"   # JVM debug port
+
     environment:
       # Server
       SERVER_PORT: 8080
+
+      JAVA_TOOL_OPTIONS: >
+          -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+
 
       # Cookie Configuration
       COOKIE_NAME: ${COOKIE_NAME:-DSIP_SESSION}

@@ -223,7 +223,6 @@
         SELECT *
         FROM dsip_partitions
         WHERE tracker_id = #{trackerId}
-          AND status = 2 /* PartitionStatus.COMPLETED */
         ORDER BY partition_index ASC
     </select>
 

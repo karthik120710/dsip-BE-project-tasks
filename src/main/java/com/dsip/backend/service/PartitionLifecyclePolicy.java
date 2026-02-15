@@ -1,5 +1,6 @@
 package com.dsip.backend.service;
 
+import com.dsip.backend.config.DsipProperties;
 import com.dsip.backend.entity.DsipPartition;
 import com.dsip.backend.entity.DsipTracker;
 import com.dsip.backend.enums.EndReason;
@@ -17,6 +18,9 @@ import java.time.Instant;
 public class PartitionLifecyclePolicy {
 
     private final FinancialCalculator financialCalculator;
+
+    private final DsipProperties dsipProperties;
+
 
     public PartitionEndDecision evaluate(DsipTracker tracker, DsipPartition partition, double marketPrice) {
         return evaluate(tracker, partition, marketPrice, Instant.now());
@@ -37,7 +41,7 @@ public class PartitionLifecyclePolicy {
                 marketPrice);
         double daysElapsed = financialCalculator.calculateDaysBetween(partition.getCreatedAt(), asOf);
 
-        if (isSuccessCondition(partitionProgress, timeProgress, capitalProgress))
+        if (isSuccessCondition(partitionProgress, timeProgress, capitalProgress) || cumulativeReturn >= dsipProperties.targetReturnPerPartitionPercentage(stockType) )
             return PartitionEndDecision.end(EndReason.SUCCESS);
 
         if (isKillSwitchStagnation(timeProgress, cumulativeReturn))
