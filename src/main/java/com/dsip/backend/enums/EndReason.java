@@ -44,7 +44,17 @@ public enum EndReason {
             "This cycle generated positive returns but did not fully reach the target.\n\n" +
                     "Capital Deployed: {deployedAmount}\n" +
                     "Net Return: {profitPct}%\n\n" +
-                    "The strategy continues with disciplined capital rotation.");
+                    "The strategy continues with disciplined capital rotation."),
+
+    ONGOING(
+            "ACTIVE",
+            "Cycle Ongoing",
+            "We have successfully smartly deployed money today , investment cycle is going on\n\n" +
+                    "Capital Deployed: {deployedAmount}\n" +
+                    "Net Return: {profitPct}%\n\n" +
+                    "We are starting the next cycle to continue compounding.") ;
+
+
 
     private final String code;
     private final String title;
@@ -83,6 +93,7 @@ public enum EndReason {
             case KILL_SWITCH_POOR_GROWTH -> PartitionStatus.KILL_SWITCH_POOR_GROWTH;
             case KILL_SWITCH_ZOMBIE -> PartitionStatus.KILL_SWITCH_ZOMBIE;
             case NEUTRAL_PARTITION -> PartitionStatus.NEUTRAL;
+            case ONGOING -> PartitionStatus.ACTIVE;
         };
     }
 
