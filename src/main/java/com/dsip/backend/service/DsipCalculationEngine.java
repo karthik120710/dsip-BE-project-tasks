@@ -34,6 +34,8 @@ import java.util.List;
 public class DsipCalculationEngine {
 
     private final DsipProperties dsipProperties;
+    private final com.dsip.backend.util.FinancialCalculator financialCalculator;
+
 
     // ========== MAIN CALCULATION METHODS ==========
 
@@ -81,7 +83,12 @@ public class DsipCalculationEngine {
             partition.getExpectedPartitionDays() == 0) {
             return 0.0;
         }
-        return partition.getPartitionCapitalAllocated() / partition.getExpectedPartitionDays();
+        double daysElapsed = financialCalculator.calculateDaysBetween(partition.getCreatedAt(), Instant.now());
+
+        double capitalRemaining = partition.getPartitionCapitalAllocated() - partition.getCapitalInvestedSoFar();
+        double minimumTradableAmount = Math.max(1,
+                capitalRemaining / (partition.getExpectedPartitionDays() - daysElapsed));
+        return minimumTradableAmount ;
     }
 
     // ========== OPPORTUNITY MULTIPLIER ==========
