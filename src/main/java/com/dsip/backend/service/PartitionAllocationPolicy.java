@@ -40,6 +40,16 @@ public class PartitionAllocationPolicy {
         }
         List<Integer> sorted = getPartitionDays(pastPartitions);
         int size = sorted.size();
+
+        // If no completed partitions have valid durations, use default
+        if (size == 0) {
+            return defaultPartitionDays;
+        }
+
+        if (size == 1) {
+            return sorted.get(0);
+        }
+
         if (size % 2 == 0) {
             return (sorted.get(size / 2 - 1) + sorted.get(size / 2)) / 2;
         } else {
@@ -70,6 +80,11 @@ public class PartitionAllocationPolicy {
     private double resolvePhaseWeight(DsipTracker tracker, List<DsipPartition> pastPartitions) {
         DeploymentStyle style = DeploymentStyle.fromValue(tracker.getDeploymentStyle());
         List<Double> weights = dsipProperties.getLoadFactor().getByKey(style.getKey());
+
+        // If no past partitions, use first phase weight
+        if (pastPartitions == null || pastPartitions.isEmpty()) {
+            return weights.get(0);
+        }
 
         double medianBurned = tracker.getTotalCapitalInvestedSoFar() / pastPartitions.size();
         double capitalRemaining = tracker.getTotalCapitalPlanned() - tracker.getTotalCapitalInvestedSoFar();
