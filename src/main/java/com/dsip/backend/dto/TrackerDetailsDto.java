@@ -43,7 +43,7 @@ public class TrackerDetailsDto {
     @JsonProperty("total_capital_invested_so_far")
     private Double totalCapitalInvestedSoFar;
 
-    @JsonProperty("current_total_value")
+    @JsonProperty("total_market_value")
     private Double currentTotalValue;
 
     @JsonProperty("net_profit_percentage")
