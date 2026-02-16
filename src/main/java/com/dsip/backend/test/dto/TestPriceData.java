@@ -24,7 +24,6 @@ public class TestPriceData {
     private double lockInPct;
     private double executedPrice;
     private int convictionScore;
-    private double executedAmount;
 
     /**
      * Determine if this is a red day (market opens below previous close).

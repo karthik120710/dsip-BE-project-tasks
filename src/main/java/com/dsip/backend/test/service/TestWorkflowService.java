@@ -17,7 +17,11 @@ import com.dsip.backend.service.DsipTrackerService;
 import com.dsip.backend.service.ExecutionService;
 import com.dsip.backend.service.RecommendationService;
 import com.dsip.backend.simulation.OhlcData;
-import com.dsip.backend.test.dto.*;
+import com.dsip.backend.test.dto.ExecuteWorkflowRequest;
+import com.dsip.backend.test.dto.ExecuteWorkflowResponse;
+import com.dsip.backend.test.dto.GeneratePriceDataRequest;
+import com.dsip.backend.test.dto.GeneratePriceDataResponse;
+import com.dsip.backend.test.dto.TestPriceData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -90,69 +94,9 @@ public class TestWorkflowService {
     }
 
     /**
-     * Populate recommendation amounts into the price data CSV.
-     * Loops through each row, calls the recommendation API, and writes
-     * executed_amount back to the CSV.
-     */
-    public PopulateRecommendationsResponse populateRecommendations(ExecuteWorkflowRequest request, UUID userId)
-            throws Exception {
-        String csvFilePath = request.getCsvFilePath();
-        Integer trackerId = request.getTrackerId();
-
-        if (userId == null) {
-            userId = getOrCreateTestUser();
-        }
-
-        TrackerDetailsDto trackerDetails = dsipTrackerService.getTrackerDetailsDto(trackerId, userId);
-        String stockSymbol = trackerDetails.getSymbol();
-
-        log.info("Populating recommendations for tracker {} ({}) using CSV: {}", trackerId, stockSymbol, csvFilePath);
-
-        List<TestPriceData> priceDataList = loadPriceDataFromCsv(csvFilePath);
-        if (priceDataList.isEmpty()) {
-            throw new IllegalStateException("No data found in CSV file");
-        }
-
-        // Get stockId from tracker for market price updates
-        Long stockId = Long.valueOf(dsipTrackerMapper.findTrackerById(trackerId)
-                .orElseThrow(() -> new IllegalStateException("Tracker not found: " + trackerId))
-                .getStockId());
-
-        for (int i = 0; i < priceDataList.size(); i++) {
-            TestPriceData dayData = priceDataList.get(i);
-
-            // Update stock market price to previous day's close
-            stockMapper.updateMarketPrice(stockId, dayData.getPrevClose());
-
-            RecommendationResponseDto recommendation = recommendationService.getRecommendation(
-                    trackerId, userId, dayData.getLockInPct());
-
-            Double rawAmount = recommendation.getRecommendedAmount();
-            if (rawAmount == null || rawAmount.isNaN() || rawAmount <= 0) {
-                throw new IllegalStateException(String.format(
-                        "Day %s: Recommendation returned invalid amount: %s", dayData.getDate(), rawAmount));
-            }
-
-            dayData.setExecutedAmount(rawAmount);
-            log.debug("Day {}: Recommendation = ${}", dayData.getDate(), rawAmount);
-        }
-
-        // Rewrite CSV with executed_amount values
-        Path csvPath = Paths.get(csvFilePath);
-        rewritePriceDataCsv(csvPath, priceDataList);
-
-        return PopulateRecommendationsResponse.builder()
-                .success(true)
-                .trackerId(trackerId)
-                .stockSymbol(stockSymbol)
-                .csvFilePath(csvPath.toAbsolutePath().toString())
-                .daysProcessed(priceDataList.size())
-                .build();
-    }
-
-    /**
-     * Execute the DSIP workflow using the price data CSV with pre-populated
-     * executed_amount values.
+     * Execute the DSIP workflow using the price data CSV.
+     * Calculates the recommended amount before each execution using the current
+     * partition state, ensuring amounts reflect the evolving state after each trade.
      */
     public ExecuteWorkflowResponse executeWorkflow(ExecuteWorkflowRequest request, UUID userId) throws Exception {
         String csvFilePath = request.getCsvFilePath();
@@ -189,7 +133,7 @@ public class TestWorkflowService {
         log.info("Set simulation start date to {} for tracker {} and partition {}", priceDataList.get(0).getDate(),
                 trackerId, firstPartition.getPartitionId());
 
-        // Execute workflow day by day using executed_amount from CSV
+        // Execute workflow day by day, calculating recommendation before each execution
         List<ExecutionLogEntry> executionLog = new ArrayList<>();
         int partitionsCreated = 0;
         double totalCapitalInvested = 0.0;
@@ -199,18 +143,21 @@ public class TestWorkflowService {
         for (int i = 0; i < priceDataList.size(); i++) {
             TestPriceData dayData = priceDataList.get(i);
             Instant simulationDate = dayData.getDate().atStartOfDay(ZoneId.systemDefault()).toInstant();
-            double executedAmount = dayData.getExecutedAmount();
 
-            if (executedAmount <= 0) {
-                throw new IllegalStateException(String.format(
-                        "Day %s: executed_amount is zero or missing in CSV. Run populate-recommendations first.",
-                        dayData.getDate()));
-            }
-
-            // Update stock market price to previous day's close before execution
+            // Update stock market price to previous day's close before recommendation
             stockMapper.updateMarketPrice(stockId, dayData.getPrevClose());
 
-            // Execute trade using amount from CSV
+            // Calculate recommended amount using current partition state
+            RecommendationResponseDto recommendation = recommendationService.getRecommendation(
+                    trackerId, userId, dayData.getLockInPct());
+
+            Double executedAmount = recommendation.getRecommendedAmount();
+            if (executedAmount == null || executedAmount.isNaN() || executedAmount <= 0) {
+                log.warn("Day {}: Recommendation returned invalid amount: {}. Skipping.", dayData.getDate(), executedAmount);
+                continue;
+            }
+
+            // Execute trade using calculated recommendation
             DsipExecutionRequestDto executionRequest = DsipExecutionRequestDto.builder()
                     .lockInPercentage(dayData.getLockInPct())
                     .convictionOverride(convictionScore)
@@ -264,13 +211,6 @@ public class TestWorkflowService {
                 }
             }
 
-            // Fetch partition state after execution for capital tracking
-            DsipPartition currentPartition = dsipTrackerMapper.findPartitionByTrackerIdAndIndex(trackerId,
-                    partitionStatus.equals("ACTIVE") ? currentPartitionIndex : currentPartitionIndex - 1)
-                    .orElse(null);
-            double partCapAllocated = currentPartition != null ? currentPartition.getPartitionCapitalAllocated() : 0.0;
-            double capInvestedSoFar = currentPartition != null ? currentPartition.getCapitalInvestedSoFar() : 0.0;
-
             ExecutionLogEntry logEntry = ExecutionLogEntry.builder()
                     .date(dayData.getDate())
                     .partitionIndex(currentPartitionIndex)
@@ -278,13 +218,11 @@ public class TestWorkflowService {
                     .convictionScore(convictionScore)
                     .executedPrice(dayData.getExecutedPrice())
                     .recommendedAmount(executedAmount)
+                    .executedAmount(executedAmount)
                     .sharesAcquired(sharesAcquired)
                     .totalShares(totalSharesAcquired)
                     .portfolioValue(totalSharesAcquired * dayData.getClose())
                     .partitionStatus(partitionStatus)
-                    .partitionCapitalAllocated(partCapAllocated)
-                    .capitalInvestedSoFar(capInvestedSoFar)
-                    .remainingCapital(partCapAllocated - capInvestedSoFar)
                     .build();
             executionLog.add(logEntry);
 
@@ -380,12 +318,12 @@ public class TestWorkflowService {
         try (BufferedWriter writer = Files.newBufferedWriter(csvPath)) {
             // Header
             writer.write(
-                    "date,open,high,low,close,prev_close,lock_in_pct,executed_price,conviction_score,executed_amount");
+                    "date,open,high,low,close,prev_close,lock_in_pct,executed_price,conviction_score");
             writer.newLine();
 
             // Data rows
             for (TestPriceData day : data) {
-                writer.write(String.format("%s,%.2f,%.2f,%.2f,%.2f,%.2f,%.4f,%.2f,%d,%.2f",
+                writer.write(String.format("%s,%.2f,%.2f,%.2f,%.2f,%.2f,%.4f,%.2f,%d",
                         day.getDate(),
                         day.getOpen(),
                         day.getHigh(),
@@ -394,8 +332,7 @@ public class TestWorkflowService {
                         day.getPrevClose(),
                         day.getLockInPct(),
                         day.getExecutedPrice(),
-                        day.getConvictionScore(),
-                        day.getExecutedAmount()));
+                        day.getConvictionScore()));
                 writer.newLine();
             }
         }
@@ -427,7 +364,6 @@ public class TestWorkflowService {
                             .lockInPct(Double.parseDouble(parts[6]))
                             .executedPrice(Double.parseDouble(parts[7]))
                             .convictionScore(Integer.parseInt(parts[8]))
-                            .executedAmount(parts.length >= 10 ? Double.parseDouble(parts[9]) : 0.0)
                             .build();
                     result.add(priceData);
                 }
@@ -451,60 +387,28 @@ public class TestWorkflowService {
         try (BufferedWriter writer = Files.newBufferedWriter(csvPath)) {
             // Header
             writer.write(
-                    "date,partition_index,lock_in_pct,conviction_score,executed_price,recommended_amount,shares_acquired,total_shares,portfolio_value,partition_status,partition_capital_allocated,capital_invested_so_far,remaining_capital");
+                    "date,partition_index,lock_in_pct,conviction_score,executed_price,recommended_amount,executed_amount,shares_acquired,total_shares,portfolio_value,partition_status");
             writer.newLine();
 
             // Data rows
             for (ExecutionLogEntry entry : log) {
-                writer.write(String.format("%s,%d,%.4f,%d,%.2f,%.2f,%.4f,%.4f,%.2f,%s,%.2f,%.2f,%.2f",
+                writer.write(String.format("%s,%d,%.4f,%d,%.2f,%.2f,%.2f,%.4f,%.4f,%.2f,%s",
                         entry.getDate(),
                         entry.getPartitionIndex(),
                         entry.getLockInPct(),
                         entry.getConvictionScore(),
                         entry.getExecutedPrice(),
                         entry.getRecommendedAmount(),
+                        entry.getExecutedAmount(),
                         entry.getSharesAcquired(),
                         entry.getTotalShares(),
                         entry.getPortfolioValue(),
-                        entry.getPartitionStatus(),
-                        entry.getPartitionCapitalAllocated(),
-                        entry.getCapitalInvestedSoFar(),
-                        entry.getRemainingCapital()));
+                        entry.getPartitionStatus()));
                 writer.newLine();
             }
         }
 
         return csvPath;
-    }
-
-    /**
-     * Rewrite price data CSV with enriched data (executed_amount values populated).
-     */
-    private void rewritePriceDataCsv(Path csvPath, List<TestPriceData> data) throws IOException {
-        try (BufferedWriter writer = Files.newBufferedWriter(csvPath)) {
-            // Header
-            writer.write(
-                    "date,open,high,low,close,prev_close,lock_in_pct,executed_price,conviction_score,executed_amount");
-            writer.newLine();
-
-            // Data rows
-            for (TestPriceData day : data) {
-                writer.write(String.format("%s,%.2f,%.2f,%.2f,%.2f,%.2f,%.4f,%.2f,%d,%.2f",
-                        day.getDate(),
-                        day.getOpen(),
-                        day.getHigh(),
-                        day.getLow(),
-                        day.getClose(),
-                        day.getPrevClose(),
-                        day.getLockInPct(),
-                        day.getExecutedPrice(),
-                        day.getConvictionScore(),
-                        day.getExecutedAmount()));
-                writer.newLine();
-            }
-        }
-
-        log.info("Rewrote price data CSV with executed_amount values: {}", csvPath.toAbsolutePath());
     }
 
     /**
@@ -582,12 +486,10 @@ public class TestWorkflowService {
         private int convictionScore;
         private double executedPrice;
         private double recommendedAmount;
+        private double executedAmount;
         private double sharesAcquired;
         private double totalShares;
         private double portfolioValue;
         private String partitionStatus;
-        private double partitionCapitalAllocated;
-        private double capitalInvestedSoFar;
-        private double remainingCapital;
     }
 }
