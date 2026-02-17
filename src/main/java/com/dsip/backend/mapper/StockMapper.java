@@ -1,0 +1,78 @@
+package com.dsip.backend.mapper;
+
+import com.dsip.backend.entity.Stock;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.time.LocalDate;
+import java.util.Optional;
+
+/**
+ * MyBatis mapper interface for Stock entity.
+ * Handles database operations for stock price caching.
+ */
+@Mapper
+public interface StockMapper {
+
+    /**
+     * Finds a stock by its ID.
+     *
+     * @param id the stock ID to search for
+     * @return Optional containing the stock if found, empty otherwise
+     */
+    Optional<Stock> findById(@Param("id") Long id);
+
+    /**
+     * Finds a stock by its symbol.
+     * This is the PRIMARY lookup method for cache checking.
+     *
+     * @param stockSymbol the stock symbol to search for
+     * @return Optional containing the stock if found, empty otherwise
+     */
+    Optional<Stock> findByStockSymbol(@Param("stockSymbol") String stockSymbol);
+
+    /**
+     * Finds a stock by symbol where last_updated_date falls on the given UTC date.
+     */
+    Optional<Stock> findByStockSymbolAndDate(@Param("stockSymbol") String stockSymbol,
+                                              @Param("utcDate") LocalDate utcDate);
+
+    /**
+     * Checks if a stock exists by its symbol.
+     *
+     * @param stockSymbol the stock symbol to check
+     * @return true if stock exists, false otherwise
+     */
+    boolean existsByStockSymbol(@Param("stockSymbol") String stockSymbol);
+
+    /**
+     * Inserts a new stock record into the database.
+     * stockSymbol must be unique.
+     *
+     * @param stock the stock to insert
+     * @return number of rows affected (should be 1)
+     */
+    int insert(Stock stock);
+
+    /**
+     * Updates an existing stock's closing price and last updated date.
+     *
+     * @param stock the stock with updated information
+     * @return number of rows affected (should be 1)
+     */
+    int update(Stock stock);
+
+    /**
+     * Updates only the market closing price for a stock by its ID.
+     * Used in simulation to override the price with CSV's prev_close value.
+     */
+    int updateMarketPrice(@Param("id") Long id, @Param("price") Double price);
+
+    /**
+     * Deletes a stock by its symbol.
+     *
+     * @param stockSymbol the stock symbol to delete
+     * @return number of rows affected (should be 1)
+     */
+    int deleteByStockSymbol(@Param("stockSymbol") String stockSymbol);
+}

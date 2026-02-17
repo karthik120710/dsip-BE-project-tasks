@@ -1,0 +1,231 @@
+package com.dsip.backend.service;
+
+import com.dsip.backend.dto.DsipExecutionRequestDto;
+import com.dsip.backend.dto.ExecutionResponseDto;
+import com.dsip.backend.entity.DsipExecution;
+import com.dsip.backend.entity.DsipPartition;
+import com.dsip.backend.entity.DsipTracker;
+import com.dsip.backend.enums.EndReason;
+import com.dsip.backend.enums.PartitionStatus;
+import com.dsip.backend.exception.PartitionNotFoundException;
+import com.dsip.backend.exception.TrackerNotFoundException;
+import com.dsip.backend.mapper.DsipTrackerMapper;
+import com.dsip.backend.model.PartitionEndDecision;
+import com.dsip.backend.model.PartitionPlan;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class ExecutionService {
+
+        private final DsipTrackerMapper dsipTrackerMapper;
+        private final PartitionAllocationPolicy allocationPolicy;
+        private final PartitionLifecyclePolicy lifecyclePolicy;
+        private final com.dsip.backend.util.FinancialCalculator financialCalculator;
+        private final DsipTrackerService dsipTrackerService;
+
+        @Transactional
+        public ExecutionResponseDto executeTrade(Integer trackerId, UUID userId, DsipExecutionRequestDto dto) {
+                return executeTrade(trackerId, userId, dto, null);
+        }
+
+        /**
+         * Execute a trade with an optional simulation date.
+         * When simulationDate is provided, it is used instead of Instant.now() for
+         * lifecycle evaluation and record timestamps (for simulation/testing).
+         */
+        @Transactional
+        public ExecutionResponseDto executeTrade(Integer trackerId, UUID userId, DsipExecutionRequestDto dto,
+                        Instant simulationDate) {
+                Instant effectiveNow = simulationDate != null ? simulationDate : Instant.now();
+
+                // 1. Validate Tracker Ownership
+                DsipTracker tracker = dsipTrackerMapper.findTrackerDetailsById(trackerId, userId);
+                if (tracker == null) {
+                        throw new TrackerNotFoundException(trackerId);
+                }
+
+                // 2. Find Active Partition using tracker's active partition index
+                DsipPartition activePartition = dsipTrackerMapper
+                                .findPartitionByTrackerIdAndIndex(trackerId, tracker.getActivePartitionIndex())
+                                .orElseThrow(() -> new PartitionNotFoundException(trackerId));
+
+                // Get latest market price (needed for metrics calculation)
+                double latestMarketPrice = dsipTrackerService.getLatestMarketPrice(trackerId);
+
+                // Check if partition is already ended
+                if (activePartition.getStatus() != PartitionStatus.ACTIVE.getValue()) {
+                        PartitionStatus status = PartitionStatus.fromValue(activePartition.getStatus());
+                        EndReason reason = EndReason.fromPartitionStatus(status);
+
+                        // Calculate metrics for historical partition
+                        double deployedAmount = activePartition.getCapitalInvestedSoFar();
+                        double profitPct = financialCalculator.cumulativeReturnPercentage(
+                                        activePartition.getNoOfSharesBought(),
+                                        activePartition.getCapitalInvestedSoFar(),
+                                        latestMarketPrice);
+
+                        return ExecutionResponseDto.builder()
+                                        .status("SKIPPED")
+                                        .code(reason.getCode())
+                                        .title(reason.getTitle())
+                                        .message(reason.buildMessage(deployedAmount, profitPct))
+                                        .deployedAmount(deployedAmount)
+                                        .profitPct(profitPct)
+                                        .build();
+                }
+
+                // 4. Insert Execution
+                DsipExecution execution = DsipExecution.builder()
+                                .trackerId(trackerId)
+                                .partitionId(activePartition.getPartitionId())
+                                .lockInPercentage(dto.getLockInPercentage())
+                                .convictionOverride(dto.getConvictionOverride())
+                                .executedAmount(dto.getExecutedAmount())
+                                .executionPrice(dto.getExecutionPrice())
+                                .createdAt(effectiveNow)
+                                .build();
+
+                dsipTrackerMapper.insertExecution(execution);
+
+                // Apply execution to partition (in-memory)
+                applyExecutionToPartition(activePartition, dto, latestMarketPrice);
+                // Apply execution to tracker (in-memory)
+                applyExecutionToTracker(tracker, dto);
+
+                // 6. Evaluate Lifecycle
+
+                PartitionEndDecision decision = lifecyclePolicy.evaluate(tracker, activePartition, latestMarketPrice,
+                                effectiveNow);
+                if (decision.isShouldEnd()) {
+                        // Mark current partition as completed in memory
+                        activePartition.setStatus(decision.getReason().toPartitionStatus().getValue());
+                        activePartition.setPartitionEndDate(effectiveNow);
+
+                        if (decision.getReason().toPartitionStatus() == PartitionStatus.COMPLETED) {
+                                int nextPartitionIndex = activePartition.getPartitionIndex() + 1;
+                                List<DsipPartition> completed = dsipTrackerMapper.findCompletedPartitions(trackerId);
+
+                                PartitionPlan plan = allocationPolicy.createPlan(tracker, nextPartitionIndex,
+                                                completed);
+
+                                DsipPartition nextPartition = DsipPartition.builder()
+                                                .trackerId(trackerId)
+                                                .partitionIndex(plan.getPartitionIndex())
+                                                .expectedPartitionDays(plan.getExpectedLengthDays())
+                                                .partitionCapitalAllocated(plan.getAllocatedCapital())
+                                                .capitalInvestedSoFar(0.0)
+                                                .noOfSharesBought(0.0)
+                                                .successfulGrowthCount(0)
+                                                .avgNegativeDeviation(0.0)
+                                                .negativeDeviationCount(0)
+                                                .maxNegativeDeviation(0.0)
+                                                .status(PartitionStatus.ACTIVE.getValue())
+                                                .createdAt(effectiveNow)
+                                                .build();
+
+                                dsipTrackerMapper.insertPartition(nextPartition);
+                                tracker.setActivePartitionIndex(nextPartitionIndex);
+
+                        }
+                }
+
+                // Final Persist of State to Database
+                dsipTrackerMapper.updatePartition(activePartition);
+                dsipTrackerMapper.updateTracker(tracker);
+
+                // Calculate metrics for response
+                double deployedAmount = activePartition.getCapitalInvestedSoFar();
+                double profitPct = financialCalculator.cumulativeReturnPercentage(
+                                activePartition.getNoOfSharesBought(),
+                                activePartition.getCapitalInvestedSoFar(),
+                                latestMarketPrice);
+
+                // Build response based on whether partition ended
+                if (decision.isShouldEnd()) {
+                        return ExecutionResponseDto.builder()
+                                        .status("EXECUTED")
+                                        .code(decision.getReason().getCode())
+                                        .title(decision.getReason().getTitle())
+                                        .message(decision.getReason().buildMessage(deployedAmount, profitPct))
+                                        .deployedAmount(deployedAmount)
+                                        .profitPct(profitPct)
+                                        .build();
+                } else {
+                        return ExecutionResponseDto.builder()
+                                        .status("EXECUTED")
+                                        .code("ONGOING")
+                                        .deployedAmount(deployedAmount)
+                                        .profitPct(profitPct)
+                                        .build();
+                }
+        }
+
+        /**
+         * Apply execution metrics to partition in memory.
+         * Updates capital invested, shares bought,negative deviation and growth count
+         * DOES NOT UPDATE DB
+         */
+        private void applyExecutionToPartition(DsipPartition partition, DsipExecutionRequestDto dto,
+                        Double marketPrice) {
+                Double sharesBought = financialCalculator.calculateSharesBought(dto.getExecutedAmount(),
+                                dto.getExecutionPrice());
+
+                partition.setCapitalInvestedSoFar(partition.getCapitalInvestedSoFar() + dto.getExecutedAmount());
+                partition.setNoOfSharesBought(partition.getNoOfSharesBought() + sharesBought);
+
+                boolean isGrowth = financialCalculator.calculateIsGrowth(partition, dto.getExecutionPrice(),
+                                marketPrice);
+
+                if (isGrowth) {
+                        int currentGrowthCount = partition.getSuccessfulGrowthCount() != null
+                                        ? partition.getSuccessfulGrowthCount()
+                                        : 0;
+                        partition.setSuccessfulGrowthCount(currentGrowthCount + 1);
+                }
+
+                double deviation = dto.getExecutionPrice() - marketPrice;
+                if (deviation < 0) {
+                        double currentAvg = partition.getAvgNegativeDeviation() != null
+                                        ? partition.getAvgNegativeDeviation()
+                                        : 0.0;
+                        int currentCount = partition.getNegativeDeviationCount() != null
+                                        ? partition.getNegativeDeviationCount()
+                                        : 0;
+                        double currentMax = partition.getMaxNegativeDeviation() != null
+                                        ? partition.getMaxNegativeDeviation()
+                                        : 0.0;
+
+                        double newAverage = (currentAvg * currentCount + deviation) / (currentCount + 1);
+
+                        partition.setAvgNegativeDeviation(newAverage);
+                        partition.setNegativeDeviationCount(currentCount + 1);
+
+                        if (currentCount == 0 || deviation < currentMax) {
+                                partition.setMaxNegativeDeviation(deviation);
+                        }
+                }
+        }
+
+        /**
+         * Apply execution metrics to tracker in memory.
+         * Updates total capital invested and shares held.
+         * DOES NOT UPDATE DB
+         */
+        private void applyExecutionToTracker(DsipTracker tracker, DsipExecutionRequestDto dto) {
+                Double sharesBought = financialCalculator.calculateSharesBought(dto.getExecutedAmount(),
+                                dto.getExecutionPrice());
+
+                tracker.setTotalCapitalInvestedSoFar(tracker.getTotalCapitalInvestedSoFar() + dto.getExecutedAmount());
+                tracker.setSharesHeldSoFar(tracker.getSharesHeldSoFar() + sharesBought);
+        }
+}

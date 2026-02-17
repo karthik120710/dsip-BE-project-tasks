@@ -3,10 +3,10 @@ server:
   servlet:
     session:
       cookie:
-        name: DSIP_SESSION
-        http-only: true
-        secure: ${COOKIE_SECURE:true}
-        same-site: lax
+        name: ${COOKIE_NAME:DSIP_SESSION}
+        http-only: ${COOKIE_HTTP_ONLY:true}
+        secure: ${COOKIE_SECURE:false}
+        same-site: ${COOKIE_SAME_SITE:lax}
         max-age: ${SESSION_MAX_AGE:5184000}  # 60 days in seconds (2 months)
 
 spring:
@@ -22,15 +22,12 @@ spring:
       maximum-pool-size: ${DB_POOL_SIZE:10}
       minimum-idle: ${DB_POOL_MIN_IDLE:5}
 
-  jpa:
-    hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:validate}
-    show-sql: ${JPA_SHOW_SQL:false}
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
 
+# MyBatis Configuration
   session:
     store-type: jdbc
     jdbc:
@@ -56,10 +53,20 @@ spring:
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
             user-name-attribute: sub
 
+mybatis:
+  mapper-locations: classpath:mapper/**/*.xml
+  type-aliases-package: com.dsip.backend
+  type-handlers-package: com.dsip.backend.typehandler
+  configuration:
+    map-underscore-to-camel-case: true
+    default-fetch-size: 100
+    default-statement-timeout: 30
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
 # Application-specific configuration
 app:
   oauth2:
-    success-redirect-url: ${OAUTH2_SUCCESS_REDIRECT_URL:http://localhost:3000}
+    success-redirect-url: ${OAUTH2_SUCCESS_REDIRECT_URL:http://localhost:3000/auth/callback}
     failure-redirect-url: ${OAUTH2_FAILURE_REDIRECT_URL:http://localhost:3000/auth/error}
     whitelist-failure-redirect-url: ${OAUTH2_WHITELIST_FAILURE_REDIRECT_URL:http://localhost:3000/auth/unauthorized}
 
@@ -69,6 +76,71 @@ app:
 
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+  # Stock API Configuration
+  finnhub:
+    api-keys:
+      - ${FINNHUB_API_KEY_1:}
+      - ${FINNHUB_API_KEY_2:}
+      - ${FINNHUB_API_KEY_3:}
+      - ${FINNHUB_API_KEY_4:}
+      - ${FINNHUB_API_KEY_5:}
+      - ${FINNHUB_API_KEY_6:}
+      - ${FINNHUB_API_KEY_7:}
+      - ${FINNHUB_API_KEY_8:}
+      - ${FINNHUB_API_KEY_9:}
+      - ${FINNHUB_API_KEY_10:}
+
+  upstox:
+    access-token: ${UPSTOX_ACCESS_TOKEN:your-upstox-access-token}
+
+  admin:
+    api-key: ${ADMIN_API_KEY}
+
+dsip:
+  trading-days-per-year: ${DSIP_TRADING_DAYS_PER_YEAR:252}
+  phase-count: ${DSIP_PHASE_COUNT:3}
+  target-return-per-partition-percentage: ${DSIP_TARGET_RETURN:24}
+  return-weight: ${DSIP_RETURN_WEIGHT:0.8}
+  growth-weight: ${DSIP_GROWTH_WEIGHT:0.2}
+
+  # Opportunity multiplier configuration
+  avg-deviation-normalization-factor: ${DSIP_AVG_DEV_NORM:0.10}
+  lock-in-normalization-factor: ${DSIP_LOCKIN_NORM:0.08}
+  avg-deviation-weight: ${DSIP_AVG_DEV_WEIGHT:0.65}
+  lock-in-weight: ${DSIP_LOCKIN_WEIGHT:0.35}
+  opportunity-multiplier-min: ${DSIP_OPP_MULT_MIN:0.7}
+  opportunity-multiplier-max-normal: ${DSIP_OPP_MULT_MAX:1.4}
+  opportunity-multiplier-max-abnormal-dip: ${DSIP_OPP_MULT_MAX_DIP:2.0}
+
+  # Contingency multiplier configuration
+  contingency-multiplier-max: ${DSIP_CONT_MULT_MAX:1.1}
+  contingency-multiplier-min: ${DSIP_CONT_MULT_MIN:0.7}
+  contingency-decay-factor: ${DSIP_CONT_DECAY:0.4}
+
+  # Lifecycle thresholds
+  success-progress-threshold: ${DSIP_SUCCESS_PROGRESS:0.80}
+  success-time-threshold: ${DSIP_SUCCESS_TIME:1.0}
+  success-capital-threshold: ${DSIP_SUCCESS_CAPITAL:0.90}
+  kill-return-threshold: ${DSIP_KILL_RETURN:-30.0}
+  kill-time-threshold: ${DSIP_KILL_TIME:2.0}
+  neutral-time-threshold: ${DSIP_NEUTRAL_TIME:1.5}
+
+  # Load factor weights by deployment style
+  load-factor:
+    gradual: ${DSIP_LOAD_FACTOR_GRADUAL:0.33,0.33,0.33}
+    moderate: ${DSIP_LOAD_FACTOR_MODERATE:0.42,0.33,0.24}
+    aggressive: ${DSIP_LOAD_FACTOR_AGGRESSIVE:0.51,0.24,0.24}
+
+  # Historical data generator configuration
+  data:
+    output-dir: ${DSIP_DATA_OUTPUT_DIR:./data/historical}
+    default-period: ${DSIP_DATA_DEFAULT_PERIOD:3Y}
+    yahoo-finance:
+      timeout-seconds: ${DSIP_YAHOO_TIMEOUT:30}
+      retry-count: ${DSIP_YAHOO_RETRY:3}
+      retry-delay-ms: ${DSIP_YAHOO_RETRY_DELAY:1000}
+      base-url: https://query1.finance.yahoo.com/v7/finance/download
 
 logging:
   level:
