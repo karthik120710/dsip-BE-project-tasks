@@ -6,6 +6,7 @@ import com.dsip.backend.entity.DsipTracker;
 import com.dsip.backend.enums.DeploymentStyle;
 import com.dsip.backend.enums.PartitionStatus;
 import com.dsip.backend.enums.StockType;
+import com.dsip.backend.mapper.DsipTrackerMapper;
 import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,8 @@ public class DsipCalculationEngine {
 
     private final DsipProperties dsipProperties;
     private final com.dsip.backend.util.FinancialCalculator financialCalculator;
+    private final DsipTrackerMapper dsipTrackerMapper;
+
 
 
     // ========== MAIN CALCULATION METHODS ==========
@@ -48,7 +51,30 @@ public class DsipCalculationEngine {
      */
     public InvestmentRecommendation calculateDailyInvestment(CalculationContext context) {
         double neutralCapital = calculateNeutralCapital(context.getPartition());
+        OpportunityResult opportunityResult = calculateOpportunityMultiplier(context);
+        double contingencyMultiplier = calculateContingencyMultiplier(context);
 
+        double rawInvestment = neutralCapital * opportunityResult.getMultiplier() * contingencyMultiplier;
+
+        // Cap by remaining partition capital
+        double remainingPartitionCapital = context.getPartition().getPartitionCapitalAllocated()
+                - context.getPartition().getCapitalInvestedSoFar();
+        double recommendedAmount = Math.min(rawInvestment, Math.max(0, remainingPartitionCapital));
+
+        return InvestmentRecommendation.builder()
+                .recommendedAmount(round(recommendedAmount, 2))
+                .neutralCapital(round(neutralCapital, 2))
+                .opportunityMultiplier(round(opportunityResult.getMultiplier(), 4))
+                .contingencyMultiplier(round(contingencyMultiplier, 4))
+                .finalMultiplier(round(opportunityResult.getMultiplier() * contingencyMultiplier, 4))
+                .signals(opportunityResult.getSignals())
+                .isAbnormalDip(opportunityResult.isAbnormalDip())
+                .build();
+    }
+
+
+    public InvestmentRecommendation calculateDailyInvestmentForSimulation(CalculationContext context) {
+        double neutralCapital = calculateNeutralCapitalForSimulation(context);
         OpportunityResult opportunityResult = calculateOpportunityMultiplier(context);
         double contingencyMultiplier = calculateContingencyMultiplier(context);
 
@@ -84,6 +110,46 @@ public class DsipCalculationEngine {
             return 0.0;
         }
         double daysElapsed = financialCalculator.calculateDaysBetween(partition.getCreatedAt(), Instant.now());
+        // 🚨 SAFETY: Zombie / stale partition detection
+        if (daysElapsed >= partition.getExpectedPartitionDays() * 2) {
+            throw new IllegalStateException(
+                    "Partition has been inactive for too long. " +
+                            "Days elapsed: " + daysElapsed +
+                            ", Expected days: " + partition.getExpectedPartitionDays()
+            );
+        }
+        double remainingDays = partition.getExpectedPartitionDays() - daysElapsed ;
+        if (remainingDays <= 0) {
+            remainingDays = 1; // avoid division by zero
+        }
+        double capitalRemaining = partition.getPartitionCapitalAllocated() - partition.getCapitalInvestedSoFar();
+
+        double minimumTradableAmount = Math.max(1,
+                capitalRemaining / remainingDays );
+        return minimumTradableAmount ;
+    }
+
+
+    public double calculateNeutralCapitalForSimulation(CalculationContext context) {
+        DsipPartition partition = context.getPartition() ;
+        DsipTracker tracker = context.getTracker() ;
+        if (partition.getPartitionCapitalAllocated() == null ||
+                partition.getExpectedPartitionDays() == null ||
+                partition.getExpectedPartitionDays() == 0) {
+            return 0.0;
+        }
+        Instant referencedDate = null ;
+        List<com.dsip.backend.entity.DsipExecution> latestExecutions = dsipTrackerMapper
+                .findExecutionsByTrackerId(tracker.getTrackerId(), 1);
+
+        if(latestExecutions!=null && !latestExecutions.isEmpty()) {
+            referencedDate = latestExecutions.get(0).getCreatedAt() ;
+        }
+        else {
+            referencedDate = partition.getCreatedAt() ;
+        }
+
+        double daysElapsed = financialCalculator.calculateDaysBetween(partition.getCreatedAt(), referencedDate);
 
         double capitalRemaining = partition.getPartitionCapitalAllocated() - partition.getCapitalInvestedSoFar();
         double minimumTradableAmount = Math.max(1,

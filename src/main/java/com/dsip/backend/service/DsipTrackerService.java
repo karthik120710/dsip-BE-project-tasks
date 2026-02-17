@@ -319,7 +319,7 @@ public class DsipTrackerService {
                                 .name(tracker.getStockName())
                                 .convictionPeriodYears(tracker.getConvictionPeriodYears())
                                 .totalCapitalPlanned(tracker.getTotalCapitalPlanned())
-                                .partitionMonths(tracker.getPartitionDays() / DsipConstants.DAYS_PER_MONTH)
+                                .partitionMonths(tracker.getPartitionDays() / DsipConstants.TRADING_DAYS_PER_MONTH)
                                 .deploymentStyle(com.dsip.backend.enums.DeploymentStyle
                                                 .fromValue(tracker.getDeploymentStyle()))
                                 .baseConvictionScore(tracker.getBaseConvictionScore())

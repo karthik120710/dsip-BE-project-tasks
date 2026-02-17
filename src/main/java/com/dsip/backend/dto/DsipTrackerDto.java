@@ -44,7 +44,7 @@ public class DsipTrackerDto {
 
     @JsonProperty("is_fractional_shares_allowed")
     @Builder.Default
-    private Boolean isFractionalSharesAllowed = false;
+    private Boolean isFractionalSharesAllowed = true;
 
     @JsonProperty("initial_invested_amount")
     @Builder.Default
@@ -79,13 +79,13 @@ public class DsipTrackerDto {
     // Conversion: months to days when setting partitionMonths
     public void setPartitionMonths(Integer months) {
         this.partitionMonths = months;
-        this.partitionDays = months != null ? months * DsipConstants.DAYS_PER_MONTH : null;
+        this.partitionDays = months != null ? months * DsipConstants.TRADING_DAYS_PER_MONTH : null;
     }
 
     // Conversion: days to months when getting partitionMonths
     public Integer getPartitionMonths() {
         if (this.partitionMonths == null && this.partitionDays != null) {
-            this.partitionMonths = this.partitionDays / DsipConstants.DAYS_PER_MONTH;
+            this.partitionMonths = this.partitionDays / DsipConstants.TRADING_DAYS_PER_MONTH;
         }
         return this.partitionMonths;
     }
@@ -111,7 +111,7 @@ public class DsipTrackerDto {
                 .convictionPeriodYears(tracker.getConvictionPeriodYears())
                 .totalCapitalPlanned(tracker.getTotalCapitalPlanned())
                 .partitionDays(tracker.getPartitionDays())
-                .partitionMonths(tracker.getPartitionDays() / DsipConstants.DAYS_PER_MONTH)
+                .partitionMonths(tracker.getPartitionDays() / DsipConstants.TRADING_DAYS_PER_MONTH)
                 .deploymentStyle(DeploymentStyle.fromValue(tracker.getDeploymentStyle()))
                 .baseConvictionScore(tracker.getBaseConvictionScore())
                 .initialInvestedAmount(tracker.getInitialInvestedAmount())
