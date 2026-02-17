@@ -129,6 +129,23 @@ public class DsipCalculationEngine {
         return minimumTradableAmount ;
     }
 
+    public Instant getReferencedDateForSimulation(Integer trackerId,DsipPartition partition) {
+        Instant referencedDate = null ;
+        List<com.dsip.backend.entity.DsipExecution> latestExecutions = dsipTrackerMapper
+                .findExecutionsByTrackerId(trackerId, 1);
+
+        if(latestExecutions!=null && !latestExecutions.isEmpty()) {
+            referencedDate = latestExecutions.get(0).getCreatedAt() ;
+        }
+        else {
+            referencedDate = partition.getCreatedAt() ;
+        }
+
+        return referencedDate ;
+
+    }
+
+
 
     public double calculateNeutralCapitalForSimulation(CalculationContext context) {
         DsipPartition partition = context.getPartition() ;
@@ -138,18 +155,9 @@ public class DsipCalculationEngine {
                 partition.getExpectedPartitionDays() == 0) {
             return 0.0;
         }
-        Instant referencedDate = null ;
-        List<com.dsip.backend.entity.DsipExecution> latestExecutions = dsipTrackerMapper
-                .findExecutionsByTrackerId(tracker.getTrackerId(), 1);
 
-        if(latestExecutions!=null && !latestExecutions.isEmpty()) {
-            referencedDate = latestExecutions.get(0).getCreatedAt() ;
-        }
-        else {
-            referencedDate = partition.getCreatedAt() ;
-        }
 
-        double daysElapsed = financialCalculator.calculateDaysBetween(partition.getCreatedAt(), referencedDate);
+        double daysElapsed = financialCalculator.calculateDaysBetween(partition.getCreatedAt(), getReferencedDateForSimulation(context.getTracker().getTrackerId(),context.getPartition()));
 
         double capitalRemaining = partition.getPartitionCapitalAllocated() - partition.getCapitalInvestedSoFar();
         double minimumTradableAmount = Math.max(1,
