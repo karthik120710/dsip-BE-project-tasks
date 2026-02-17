@@ -74,7 +74,7 @@ public class PartitionAllocationPolicy {
         double trackerDays = tracker.getConvictionPeriodYears() * dsipProperties.getTradingDaysPerYear();
         double remainingTime = trackerDays - totalDaysPassed;
 
-        return (int) Math.floor(remainingTime / pastPartitionsMedianLength) + pastPartitions.size();
+        return (int) Math.round(remainingTime / pastPartitionsMedianLength) + pastPartitions.size();
     }
 
     private double resolvePhaseWeight(DsipTracker tracker, List<DsipPartition> pastPartitions) {

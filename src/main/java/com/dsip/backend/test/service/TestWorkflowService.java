@@ -148,7 +148,7 @@ public class TestWorkflowService {
             stockMapper.updateMarketPrice(stockId, dayData.getPrevClose());
 
             // Calculate recommended amount using current partition state
-            RecommendationResponseDto recommendation = recommendationService.getRecommendation(
+            RecommendationResponseDto recommendation = recommendationService.getRecommendationForSimulation(
                     trackerId, userId, dayData.getLockInPct());
 
             Double executedAmount = recommendation.getRecommendedAmount();

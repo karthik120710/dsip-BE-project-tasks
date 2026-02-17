@@ -119,7 +119,7 @@ public class SimulationService {
                     .build();
 
             // Get recommendation with all signal details
-            InvestmentRecommendation recommendation = calculationEngine.calculateDailyInvestment(context);
+            InvestmentRecommendation recommendation = calculationEngine.calculateDailyInvestmentForSimulation(context);
             double recommendedAmount = recommendation.getRecommendedAmount();
 
             // Execute trade
@@ -340,7 +340,7 @@ public class SimulationService {
                     .build();
 
             // Get recommendation
-            InvestmentRecommendation recommendation = calculationEngine.calculateDailyInvestment(context);
+            InvestmentRecommendation recommendation = calculationEngine.calculateDailyInvestmentForSimulation(context);
             double recommendedAmount = recommendation.getRecommendedAmount();
 
             // Execute trade

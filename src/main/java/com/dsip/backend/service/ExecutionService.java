@@ -32,6 +32,7 @@ public class ExecutionService {
         private final PartitionLifecyclePolicy lifecyclePolicy;
         private final com.dsip.backend.util.FinancialCalculator financialCalculator;
         private final DsipTrackerService dsipTrackerService;
+        private final DsipCalculationEngine dsipCalculationEngine;
 
         @Transactional
         public ExecutionResponseDto executeTrade(Integer trackerId, UUID userId, DsipExecutionRequestDto dto) {
@@ -60,8 +61,21 @@ public class ExecutionService {
                                 .orElseThrow(() -> new PartitionNotFoundException(trackerId));
 
                 // Get latest market price (needed for metrics calculation)
-                double latestMarketPrice = dsipTrackerService.getLatestMarketPrice(trackerId);
+                double latestMarketPrice ;
+                if(simulationDate!=null) {
+                        List<com.dsip.backend.entity.DsipExecution> latestExecutions = dsipTrackerMapper
+                                .findExecutionsByTrackerId(trackerId, 1);
+                        if(!latestExecutions.isEmpty()) {
+                                latestMarketPrice = latestExecutions.get(0).getExecutionPrice();
+                        }
+                        else {
+                                latestMarketPrice = 0.0 ;
+                        }
 
+                }
+                else {
+                        latestMarketPrice = dsipTrackerService.getLatestMarketPrice(trackerId);
+                }
                 // Check if partition is already ended
                 if (activePartition.getStatus() != PartitionStatus.ACTIVE.getValue()) {
                         PartitionStatus status = PartitionStatus.fromValue(activePartition.getStatus());

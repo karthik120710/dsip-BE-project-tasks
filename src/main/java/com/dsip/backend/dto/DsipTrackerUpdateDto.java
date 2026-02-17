@@ -49,6 +49,6 @@ public class DsipTrackerUpdateDto {
     // Conversion: months to days when setting partitionMonths
     public void setPartitionMonths(Integer months) {
         this.partitionMonths = months;
-        this.partitionDays = months != null ? months * DsipConstants.DAYS_PER_MONTH : null;
+        this.partitionDays = months != null ? months * DsipConstants.TRADING_DAYS_PER_MONTH : null;
     }
 }
