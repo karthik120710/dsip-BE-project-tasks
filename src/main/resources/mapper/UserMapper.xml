@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dsip.backend.mapper.UserMapper">
+
+    <!-- Result Map -->
+    <resultMap id="UserResultMap" type="com.dsip.backend.entity.User">
+        <id property="id" column="id"/>
+        <result property="email" column="email"/>
+        <result property="name" column="name"/>
+        <result property="profilePicture" column="profile_picture"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <!-- SQL Fragments -->
+    <sql id="userColumns">
+        id, email, name, profile_picture, created_at
+    </sql>
+
+    <!-- Select Queries -->
+    <select id="findById" resultMap="UserResultMap">
+        SELECT
+        <include refid="userColumns"/>
+        FROM users
+        WHERE id = #{id}
+    </select>
+
+    <select id="findByEmail" resultMap="UserResultMap">
+        SELECT
+        <include refid="userColumns"/>
+        FROM users
+        WHERE email = #{email}
+    </select>
+
+    <select id="existsByEmail" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1 FROM users WHERE email = #{email}
+        )
+    </select>
+
+    <select id="findAll" resultMap="UserResultMap">
+        SELECT
+        <include refid="userColumns"/>
+        FROM users
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- Insert Query -->
+    <insert id="insert" parameterType="com.dsip.backend.entity.User">
+        <selectKey keyProperty="id" resultType="java.util.UUID" order="BEFORE">
+            SELECT COALESCE(CAST(#{id, jdbcType=VARCHAR} AS UUID), gen_random_uuid())
+        </selectKey>
+        INSERT INTO users (id, email, name, profile_picture, created_at)
+        VALUES (
+            #{id},
+            #{email},
+            #{name},
+            #{profilePicture},
+            COALESCE(#{createdAt}, CURRENT_TIMESTAMP)
+        )
+    </insert>
+
+    <!-- Update Query -->
+    <update id="update" parameterType="com.dsip.backend.entity.User">
+        UPDATE users
+        SET email = #{email},
+            name = #{name},
+            profile_picture = #{profilePicture}
+        WHERE id = #{id}
+    </update>
+
+    <!-- Delete Query -->
+    <delete id="deleteById">
+        DELETE FROM users WHERE id = #{id}
+    </delete>
+
+</mapper>
