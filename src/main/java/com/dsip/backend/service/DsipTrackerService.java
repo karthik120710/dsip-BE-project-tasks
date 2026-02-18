@@ -174,7 +174,7 @@ public class DsipTrackerService {
                                         .totalCapitalInvestedSoFar(totalInvested)
                                         .totalCapitalPlanned(tracker.getTotalCapitalPlanned())
                                         .netProfitPercentage(netProfitPercentage)
-                                        .dsipTotalInvestedCapital(Math.abs(tracker.getTotalCapitalInvestedSoFar() - tracker.getInitialInvestedAmount()))
+                                        .dsipTotalInvestedCapital(tracker.getTotalCapitalInvestedSoFar())
                                         .dsipNetProfitPercentage(dsipNetProfitPercentage)
                                         .build();
 
