@@ -27,6 +27,12 @@ public class TrackerDetailsDto {
     @JsonProperty("total_capital_planned")
     private Double totalCapitalPlanned;
 
+    @JsonProperty("initial_shares_held")
+    private Double initialSharesHeld ;
+
+    @JsonProperty("initial_invested_amount")
+    private Double initialInvestedAmount ;
+
     @JsonProperty("partition_months")
     private Integer partitionMonths;
 

@@ -217,7 +217,6 @@ public class DsipTrackerService {
 
                 double currentPrice = getLatestMarketPrice(trackerId);
 
-                // --- Overall Performance (Includes Initials) ---
                 double totalShares = tracker.getSharesHeldSoFar() + tracker.getInitialSharesHeld();
                 double totalInvested = tracker.getTotalCapitalInvestedSoFar() + tracker.getInitialInvestedAmount();
 
@@ -319,6 +318,8 @@ public class DsipTrackerService {
                                 .name(tracker.getStockName())
                                 .convictionPeriodYears(tracker.getConvictionPeriodYears())
                                 .totalCapitalPlanned(tracker.getTotalCapitalPlanned())
+                                .initialInvestedAmount(tracker.getInitialInvestedAmount())
+                                .initialSharesHeld(tracker.getInitialSharesHeld())
                                 .partitionMonths(tracker.getPartitionDays() / DsipConstants.TRADING_DAYS_PER_MONTH)
                                 .deploymentStyle(com.dsip.backend.enums.DeploymentStyle
                                                 .fromValue(tracker.getDeploymentStyle()))
