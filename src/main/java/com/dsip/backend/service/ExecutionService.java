@@ -76,6 +76,29 @@ public class ExecutionService {
                 else {
                         latestMarketPrice = dsipTrackerService.getLatestMarketPrice(trackerId);
                 }
+
+                // ---- EXECUTION PRICE VALIDATION ----
+                if (latestMarketPrice > 0) {
+
+                        double userPrice = dto.getExecutionPrice();
+
+                        double deviationPct = Math.abs(userPrice - latestMarketPrice) / latestMarketPrice * 100.0;
+
+                        double allowedDeviationPct = 15.0; // configurable later
+
+                        if (deviationPct > allowedDeviationPct) {
+                                throw new IllegalArgumentException(
+                                        String.format(
+                                                "Execution price deviates %.2f%% from latest market price (%.2f). " +
+                                                        "Please verify the entered price.",
+                                                deviationPct,
+                                                latestMarketPrice
+                                        )
+                                );
+                        }
+                }
+
+
                 // Check if partition is already ended
                 if (activePartition.getStatus() != PartitionStatus.ACTIVE.getValue()) {
                         PartitionStatus status = PartitionStatus.fromValue(activePartition.getStatus());

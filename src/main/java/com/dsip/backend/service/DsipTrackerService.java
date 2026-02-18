@@ -109,25 +109,7 @@ public class DsipTrackerService {
 
                 com.dsip.backend.entity.Stock stock = stockMapper.findById(Long.valueOf(tracker.getStockId()))
                                 .orElseThrow(() -> new StockNotFoundException(String.valueOf(tracker.getStockId())));
-                // Get the latest execution for this tracker
-                List<com.dsip.backend.entity.DsipExecution> latestExecutions = dsipTrackerMapper
-                                .findExecutionsByTrackerId(trackerId, 1);
-                // Determine which price to use based on recency
-                if (!latestExecutions.isEmpty()) {
-                        com.dsip.backend.entity.DsipExecution latestExecution = latestExecutions.get(0);
-                        // Compare timestamps: execution created_at vs stock last_updated_date
-                        if (stock.getLastUpdatedDate() != null &&
-                                        stock.getLastUpdatedDate().isAfter(latestExecution.getCreatedAt())) {
-                                // Stock price is more recent
-                                return stock.getLastDateMarketClosingPrice();
-                        } else {
-                                // Execution price is more recent
-                                return latestExecution.getExecutionPrice();
-                        }
-                } else {
-                        // No executions, use stock price
-                        return stock.getLastDateMarketClosingPrice();
-                }
+                return stock.getLastDateMarketClosingPrice();
         }
 
         public com.dsip.backend.dto.PortfolioResponseDto getAllTrackers(UUID userId) {
