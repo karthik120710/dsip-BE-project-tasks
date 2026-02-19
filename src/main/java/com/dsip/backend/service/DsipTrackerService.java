@@ -202,7 +202,7 @@ public class DsipTrackerService {
                 double totalShares = tracker.getSharesHeldSoFar() + tracker.getInitialSharesHeld();
                 double totalInvested = tracker.getTotalCapitalInvestedSoFar() + tracker.getInitialInvestedAmount();
                 double currentAvg = totalInvested/totalShares ;
-
+                double dsipCurrentAvg = tracker.getTotalCapitalInvestedSoFar()/tracker.getSharesHeldSoFar() ;
                 double currentTotalValue = financialCalculator.calculateMarketValue(currentPrice, totalShares);
                 Double netProfitPercentage = financialCalculator.calculateProfitPercentage(currentTotalValue,
                                 totalInvested);
@@ -317,7 +317,7 @@ public class DsipTrackerService {
                                 .dsipTotalMarketValue(dsipTotalMarketValue)
                                 .dsipTotalInvestedCapitalSoFar((double) dsipTotalInvestedCapital)
                                 .dsipNetProfitPercentage(dsipTotalNetProfitPercentage)
-
+                                .dsipCurrentAvg(dsipCurrentAvg)
                                 .activePartitionIndex(tracker.getActivePartitionIndex())
                                 .totalCycles(totalCycles)
 

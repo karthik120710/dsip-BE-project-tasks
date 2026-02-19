@@ -43,7 +43,7 @@ services:
       OAUTH2_REDIRECT_URI: http://localhost:8080/login/oauth2/code/google
 
       # OAuth2 Redirects
-      OAUTH2_SUCCESS_REDIRECT_URL: http://localhost:3000/home
+      OAUTH2_SUCCESS_REDIRECT_URL: http://localhost:3000/
       OAUTH2_FAILURE_REDIRECT_URL: http://localhost:3000/auth/error
       OAUTH2_WHITELIST_FAILURE_REDIRECT_URL: http://localhost:3000/auth/unauthorized
 

@@ -61,13 +61,15 @@ public class TrackerDetailsDto {
     @JsonProperty("current_avg")
     private Double currentAvg ;
 
-
     // DSIP Specific Performance (Excludes Initials)
     @JsonProperty("dsip_total_market_value")
     private Double dsipTotalMarketValue;
 
     @JsonProperty("dsip_total_capital_invested_so_far")
     private Double dsipTotalInvestedCapitalSoFar;
+
+    @JsonProperty("dsip_current_avg")
+    private Double dsipCurrentAvg ;
 
     @JsonProperty("dsip_net_profit_percentage")
     private Double dsipNetProfitPercentage;
