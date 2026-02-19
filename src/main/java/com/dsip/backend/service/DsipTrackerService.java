@@ -201,6 +201,7 @@ public class DsipTrackerService {
 
                 double totalShares = tracker.getSharesHeldSoFar() + tracker.getInitialSharesHeld();
                 double totalInvested = tracker.getTotalCapitalInvestedSoFar() + tracker.getInitialInvestedAmount();
+                double currentAvg = totalInvested/totalShares ;
 
                 double currentTotalValue = financialCalculator.calculateMarketValue(currentPrice, totalShares);
                 Double netProfitPercentage = financialCalculator.calculateProfitPercentage(currentTotalValue,
@@ -311,7 +312,8 @@ public class DsipTrackerService {
                                 .totalCapitalInvestedSoFar((double) totalInvested)
                                 .currentTotalValue(currentTotalValue)
                                 .netProfitPercentage(netProfitPercentage)
-
+                                .currentMarketPrice(currentPrice)
+                                .currentAvg(currentAvg)
                                 .dsipTotalMarketValue(dsipTotalMarketValue)
                                 .dsipTotalInvestedCapitalSoFar((double) dsipTotalInvestedCapital)
                                 .dsipNetProfitPercentage(dsipTotalNetProfitPercentage)
