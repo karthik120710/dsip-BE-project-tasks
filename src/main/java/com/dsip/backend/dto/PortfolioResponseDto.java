@@ -18,7 +18,7 @@ public class PortfolioResponseDto {
     private Double totalMarketValue;
 
     @JsonProperty("total_capital_invested_so_far")
-    private Integer totalInvestedCapital;
+    private Double totalInvestedCapital;
 
     @JsonProperty("net_profit_percentage")
     private Double netProfitPercentage;
@@ -27,7 +27,7 @@ public class PortfolioResponseDto {
     private Double dsipTotalMarketValue;
 
     @JsonProperty("dsip_total_capital_invested_so_far")
-    private Integer dsipTotalInvestedCapital;
+    private Double dsipTotalInvestedCapital;
 
     @JsonProperty("dsip_total_net_profit_percentage")
     private Double dsipTotalNetProfitPercentage;

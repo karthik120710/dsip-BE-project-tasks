@@ -77,8 +77,8 @@ public class ExecutionService {
                         latestMarketPrice = dsipTrackerService.getLatestMarketPrice(trackerId);
                 }
 
-                // ---- EXECUTION PRICE VALIDATION ----
-                if (latestMarketPrice > 0) {
+                // ---- EXECUTION PRICE VALIDATION (live mode only) ----
+                if (simulationDate == null && latestMarketPrice > 0) {
 
                         double userPrice = dto.getExecutionPrice();
 

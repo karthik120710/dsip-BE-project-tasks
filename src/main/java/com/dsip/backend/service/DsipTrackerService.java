@@ -117,9 +117,9 @@ public class DsipTrackerService {
 
                 // Initialize aggregates
                 double totalMarketValue = 0.0;
-                int totalInvestedCapital = 0;
+                double totalInvestedCapital = 0;
                 double dsipTotalMarketValue = 0.0;
-                int dsipTotalInvestedCapital = 0;
+                double dsipTotalInvestedCapital = 0;
 
                 List<com.dsip.backend.dto.TrackerSummaryDto> trackerSummaries = new java.util.ArrayList<>();
 

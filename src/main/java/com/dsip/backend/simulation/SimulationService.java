@@ -540,6 +540,7 @@ public class SimulationService {
                 .baseConvictionScore(config.getBaseConvictionScore())
                 .deploymentStyle(style.getValue())
                 .partitionDays(config.getExpectedPartitionDays())
+                .stockType(config.getStockType().getValue())
                 .activePartitionIndex(1)
                 .status(1) // ACTIVE
                 .createdAt(Instant.now())
