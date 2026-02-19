@@ -44,9 +44,15 @@ public class FinancialCalculator {
         return currentPrice * quantity;
     }
 
-    public double round(double value, int places) {
-        if (places < 0)
-            throw new IllegalArgumentException();
+    public double round(Double value, int places) {
+        if (value == null) {
+            return 0.0; // or choose a default behavior
+        }
+
+        if (places < 0) {
+            throw new IllegalArgumentException("Decimal places cannot be negative");
+        }
+
         if (Double.isNaN(value) || Double.isInfinite(value)) {
             return 0.0;
         }
