@@ -177,12 +177,12 @@ public class DsipTrackerService {
 
                 // Build and return portfolio response
                 return com.dsip.backend.dto.PortfolioResponseDto.builder()
-                                .totalMarketValue(financialCalculator.round(totalMarketValue, 2))
-                                .totalInvestedCapital(totalInvestedCapital)
-                                .netProfitPercentage(netProfitPercentage)
-                                .dsipTotalMarketValue(financialCalculator.round(dsipTotalMarketValue, 2))
-                                .dsipTotalInvestedCapital(dsipTotalInvestedCapital)
-                                .dsipTotalNetProfitPercentage(dsipNetProfitPercentage)
+                                .totalMarketValue(financialCalculator.round(totalMarketValue, 3))
+                                .totalInvestedCapital(financialCalculator.round(totalInvestedCapital,3))
+                                .netProfitPercentage(financialCalculator.round(netProfitPercentage,2))
+                                .dsipTotalMarketValue(financialCalculator.round(dsipTotalMarketValue, 3))
+                                .dsipTotalInvestedCapital(financialCalculator.round(dsipTotalInvestedCapital,2))
+                                .dsipTotalNetProfitPercentage(financialCalculator.round(dsipNetProfitPercentage,2))
                                 .dsipTrackers(trackerSummaries)
                                 .build();
         }
