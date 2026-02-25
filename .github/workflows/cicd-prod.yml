@@ -1,4 +1,4 @@
-name: Continuous Integration and Continuous Deployment
+name: CI/CD (prod)
 on:
   push:
     branches: [main]
