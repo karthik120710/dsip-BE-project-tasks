@@ -2,6 +2,12 @@ name: Continuous Integration and Continuous Deployment
 on:
   push:
     branches: [main]
+
+env:
+  MANIFESTS_REPO: LimitLessJB/manifests
+  MANIFEST_FILE_PATH: backend/deployment.yml
+  IMAGE_TAG: limitlessjb/dsip-be
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -25,20 +31,20 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: limitlessjb/dsip-be:${{ github.sha }}
+          tags: ${{ env.IMAGE_TAG }}:${{ github.sha }}
 
       - name: Checkout ops repo
         uses: actions/checkout@v4
         with:
-          repository: LimitLessJB/manifests
+          repository: ${{ env.MANIFESTS_REPO }}
           token: ${{ secrets.PAT }}
           path: ops
       - name: Update image tag and push
         working-directory: ops
         run: |
-          sed -i 's|image: limitlessjb/dsip-be:.*|image: limitlessjb/dsip-be:${{ github.sha }}|' backend/deployment.yml
+          sed -i 's|image: ${{ env.IMAGE_TAG }}:.*|image: ${{ env.IMAGE_TAG }}:${{ github.sha }}|' ${{ env.MANIFEST_FILE_PATH }}
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
-          git add backend/deployment.yml
+          git add ${{ env.MANIFEST_FILE_PATH }}
           git commit -m "Update image to ${{ github.sha }}" || echo "No changes to commit"
           git push origin main
