@@ -41,7 +41,7 @@ public class PartitionLifecyclePolicy {
                 marketPrice);
         double daysElapsed = financialCalculator.calculateDaysBetween(partition.getCreatedAt(), asOf);
 
-        if (isSuccessCondition(partitionProgress, timeProgress, capitalProgress)
+        if (isSuccessCondition(partitionProgress, timeProgress, capitalProgress))
             return PartitionEndDecision.end(EndReason.SUCCESS);
 
         if (isKillSwitchStagnation(timeProgress, cumulativeReturn))
