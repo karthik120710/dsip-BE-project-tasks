@@ -58,4 +58,66 @@ class PartitionAllocationPolicyTest {
         assertEquals(5, next.getPartitionIndex());
         assertEquals(99.0, next.getAllocatedCapital(), 0.001);
     }
+
+    @Test
+    void testValidationFailsForBadInputs() {
+        DsipProperties dsipProperties = new DsipProperties();
+        FinancialCalculator financialCalculator = new FinancialCalculator(dsipProperties);
+        PartitionAllocationPolicy policy = new PartitionAllocationPolicy(dsipProperties, financialCalculator);
+
+        DsipTracker invalidBudget = DsipTracker.builder()
+                .convictionPeriodYears(1.0)
+                .partitionDays(21)
+                .totalCapitalPlanned(0.0)
+                .deploymentStyle(2)
+                .build();
+
+        IllegalArgumentException ex1 = assertThrows(IllegalArgumentException.class,
+                () -> policy.generatePartitionExecutionPlan(invalidBudget));
+        assertEquals("Budget must be greater than 0", ex1.getMessage());
+
+        DsipTracker invalidConviction = DsipTracker.builder()
+                .convictionPeriodYears(0.0)
+                .partitionDays(21)
+                .totalCapitalPlanned(1000.0)
+                .deploymentStyle(2)
+                .build();
+
+        IllegalArgumentException ex2 = assertThrows(IllegalArgumentException.class,
+                () -> policy.generatePartitionExecutionPlan(invalidConviction));
+        assertEquals("Conviction months must be greater than 0", ex2.getMessage());
+
+        DsipTracker invalidPartitionLength = DsipTracker.builder()
+                .convictionPeriodYears(1.0)
+                .partitionDays(0)
+                .totalCapitalPlanned(1000.0)
+                .deploymentStyle(2)
+                .build();
+
+        IllegalArgumentException ex3 = assertThrows(IllegalArgumentException.class,
+                () -> policy.generatePartitionExecutionPlan(invalidPartitionLength));
+        assertEquals("Partition length must be greater than 0", ex3.getMessage());
+
+        DsipTracker invalidTooLong = DsipTracker.builder()
+                .convictionPeriodYears(0.5)
+                .partitionDays(21)
+                .totalCapitalPlanned(1000.0)
+                .deploymentStyle(2)
+                .build();
+
+        IllegalArgumentException ex4 = assertThrows(IllegalArgumentException.class,
+                () -> policy.generatePartitionExecutionPlan(invalidTooLong));
+        assertEquals("Partition length cannot exceed conviction period", ex4.getMessage());
+
+        DsipTracker invalidStrategy = DsipTracker.builder()
+                .convictionPeriodYears(1.0)
+                .partitionDays(21)
+                .totalCapitalPlanned(1000.0)
+                .deploymentStyle(99)
+                .build();
+
+        IllegalArgumentException ex5 = assertThrows(IllegalArgumentException.class,
+                () -> policy.generatePartitionExecutionPlan(invalidStrategy));
+        assertEquals("Strategy must be valid", ex5.getMessage());
+    }
 }

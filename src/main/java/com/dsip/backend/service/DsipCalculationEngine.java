@@ -602,6 +602,29 @@ public class DsipCalculationEngine {
             throw new IllegalArgumentException("partitionIndex must be >= 1");
         }
 
+        // validate as defensive check for direct CalculationEngine use
+        if (tracker == null) {
+            throw new IllegalArgumentException("Tracker cannot be null");
+        }
+        if (tracker.getTotalCapitalPlanned() == null || tracker.getTotalCapitalPlanned() <= 0) {
+            throw new IllegalArgumentException("Budget must be greater than 0");
+        }
+        if (tracker.getConvictionPeriodYears() == null || tracker.getConvictionPeriodYears() <= 0) {
+            throw new IllegalArgumentException("Conviction months must be greater than 0");
+        }
+        if (tracker.getPartitionDays() == null || tracker.getPartitionDays() <= 0) {
+            throw new IllegalArgumentException("Partition length must be greater than 0");
+        }
+        double convictionDays = tracker.getConvictionPeriodYears() * dsipProperties.getTradingDaysPerYear();
+        if (tracker.getPartitionDays() > convictionDays) {
+            throw new IllegalArgumentException("Partition length cannot exceed conviction period");
+        }
+        try {
+            DeploymentStyle.fromValue(tracker.getDeploymentStyle());
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Strategy must be valid", ex);
+        }
+
         int totalPartitions = calculateTotalPartitions(tracker);
         int phaseCount = Math.max(1, dsipProperties.getPhaseCount());
 
