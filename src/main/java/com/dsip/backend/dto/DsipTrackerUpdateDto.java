@@ -33,9 +33,20 @@ public class DsipTrackerUpdateDto {
     @Min(value = 1, message = "Total capital planned must be at least 1")
     private Double totalCapitalPlanned;
 
-    @JsonProperty("conviction_period_years")
-    @Min(value = 1, message = "Conviction period years must be at least 1")
+    // Internal field (stored in DB as years)
+    @JsonIgnore
     private Double convictionPeriodYears;
+
+    // API field (exposed as months)
+    @JsonProperty("conviction_period_months")
+    @Min(value = 1, message = "Conviction period months must be at least 1")
+    private Integer convictionPeriodMonths;
+
+    // Conversion: months → years when setting
+    public void setConvictionPeriodMonths(Integer months) {
+        this.convictionPeriodMonths = months;
+        this.convictionPeriodYears = months != null ? months / 12.0 : null;
+    }
 
     // Internal field (stored in DB as days)
     @JsonIgnore

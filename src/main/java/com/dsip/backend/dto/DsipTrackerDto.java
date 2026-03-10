@@ -56,10 +56,29 @@ public class DsipTrackerDto {
     @Min(value = 0, message = "Initial shares held cannot be negative")
     private Double initialSharesHeld = 0.0;
 
-    @JsonProperty("conviction_period_years")
-    @NotNull(message = "Conviction period years is required")
-    @Min(value = 1, message = "Conviction period must be at least 1 year")
+    // Internal field (stored in DB as years)
+    @JsonIgnore
     private Double convictionPeriodYears;
+
+    // API field (exposed as months)
+    @JsonProperty("conviction_period_months")
+    @NotNull(message = "Conviction period months is required")
+    @Min(value = 1, message = "Conviction period months must be at least 1")
+    private Integer convictionPeriodMonths;
+
+    // Conversion: months → years when setting
+    public void setConvictionPeriodMonths(Integer months) {
+        this.convictionPeriodMonths = months;
+        this.convictionPeriodYears = months != null ? months / 12.0 : null;
+    }
+
+    // Conversion: years → months when getting (for response)
+    public Integer getConvictionPeriodMonths() {
+        if (this.convictionPeriodMonths == null && this.convictionPeriodYears != null) {
+            this.convictionPeriodMonths = (int) Math.round(this.convictionPeriodYears * 12);
+        }
+        return this.convictionPeriodMonths;
+    }
 
     @JsonProperty("total_capital_planned")
     @NotNull(message = "Total capital planned is required")
@@ -103,12 +122,11 @@ public class DsipTrackerDto {
     private java.time.Instant createdAt;
 
     public static DsipTrackerDto fromEntity(com.dsip.backend.entity.DsipTracker tracker, String stockSymbol) {
-        return DsipTrackerDto.builder()
+        DsipTrackerDto dto = DsipTrackerDto.builder()
                 .trackerId(tracker.getTrackerId())
                 .userId(tracker.getUserId())
                 .stockId(tracker.getStockId())
                 .stockSymbol(stockSymbol)
-                .convictionPeriodYears(tracker.getConvictionPeriodYears())
                 .totalCapitalPlanned(tracker.getTotalCapitalPlanned())
                 .partitionDays(tracker.getPartitionDays())
                 .partitionMonths(tracker.getPartitionDays() / DsipConstants.TRADING_DAYS_PER_MONTH)
@@ -123,5 +141,10 @@ public class DsipTrackerDto {
                 .isFractionalSharesAllowed(tracker.getIsFractionalSharesAllowed())
                 .createdAt(tracker.getCreatedAt())
                 .build();
+        // Populate conviction months from years (triggers setter-based conversion)
+        if (tracker.getConvictionPeriodYears() != null) {
+            dto.setConvictionPeriodMonths((int) Math.round(tracker.getConvictionPeriodYears() * 12));
+        }
+        return dto;
     }
 }
