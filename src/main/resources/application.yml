@@ -131,6 +131,7 @@ dsip:
     gradual: ${DSIP_LOAD_FACTOR_GRADUAL:0.33,0.33,0.33}
     moderate: ${DSIP_LOAD_FACTOR_MODERATE:0.42,0.33,0.24}
     aggressive: ${DSIP_LOAD_FACTOR_AGGRESSIVE:0.51,0.24,0.24}
+    balanced: ${DSIP_LOAD_FACTOR_BALANCED:0.33,0.33,0.33}
 
   # Historical data generator configuration
   data:

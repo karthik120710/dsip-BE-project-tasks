@@ -97,11 +97,18 @@ public class DsipProperties {
          */
         private List<Double> aggressive = List.of(0.51, 0.24, 0.24);
 
+        /**
+         * Phase weights for BALANCED deployment: equal 33/33/33 split across all
+         * phases.
+         */
+        private List<Double> balanced = List.of(0.33, 0.33, 0.33);
+
         public List<Double> getByKey(String key) {
             return switch (key.toLowerCase()) {
                 case "gradual" -> gradual;
                 case "moderate" -> moderate;
                 case "aggressive" -> aggressive;
+                case "balanced" -> balanced;
                 default -> gradual; // Default to gradual for safety
             };
         }
@@ -111,6 +118,7 @@ public class DsipProperties {
                 case GRADUAL -> gradual;
                 case MODERATE -> moderate;
                 case AGGRESSIVE -> aggressive;
+                case BALANCED -> balanced;
             };
         }
     }

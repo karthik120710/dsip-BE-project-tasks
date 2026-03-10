@@ -12,7 +12,8 @@ import java.util.Arrays;
 public enum DeploymentStyle {
     GRADUAL(1, "GRADUAL"),
     MODERATE(2, "MODERATE"),
-    AGGRESSIVE(3, "AGGRESSIVE");
+    AGGRESSIVE(3, "AGGRESSIVE"),
+    BALANCED(4, "BALANCED");
 
     private final int value;
     @JsonValue
