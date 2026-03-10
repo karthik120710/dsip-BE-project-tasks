@@ -12,6 +12,7 @@ import com.dsip.backend.exception.TrackerNotFoundException;
 import com.dsip.backend.exception.UnauthorizedTrackerAccessException;
 import com.dsip.backend.mapper.DsipTrackerMapper;
 import com.dsip.backend.mapper.StockMapper;
+import com.dsip.backend.model.PartitionExecutionPlan;
 import com.dsip.backend.service.DsipCalculationEngine.CalculationContext;
 import com.dsip.backend.service.DsipCalculationEngine.InvestmentRecommendation;
 import com.dsip.backend.util.FinancialCalculator;
@@ -34,6 +35,24 @@ public class RecommendationService {
         private final DsipCalculationEngine calculationEngine;
         private final FinancialCalculator financialCalculator;
         private final DsipTrackerService dsipTrackerService;
+        private final PartitionAllocationPolicy partitionAllocationPolicy;
+
+        /**
+         * Get partition execution plan for a tracker.
+         *
+         * @param trackerId tracker id
+         * @param userId user id
+         * @return list of partition execution plan (partitionNumber, phaseNumber, allocatedAmount)
+         */
+        public java.util.List<PartitionExecutionPlan> getPartitionExecutionPlan(Integer trackerId, java.util.UUID userId) {
+                DsipTracker tracker = dsipTrackerMapper.findTrackerDetailsById(trackerId, userId);
+                if (tracker == null) {
+                        dsipTrackerMapper.findTrackerById(trackerId)
+                                        .orElseThrow(() -> new TrackerNotFoundException(trackerId));
+                        throw new UnauthorizedTrackerAccessException(trackerId, userId);
+                }
+                return partitionAllocationPolicy.generatePartitionExecutionPlan(tracker);
+        }
 
         /**
          * Calculate investment recommendation for a tracker.

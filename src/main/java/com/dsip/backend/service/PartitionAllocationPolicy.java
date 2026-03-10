@@ -27,17 +27,15 @@ public class PartitionAllocationPolicy {
 
     public PartitionPlan createPlan(DsipTracker tracker, int nextPartitionIndex, List<DsipPartition> pastPartitions) {
 
-        List<PartitionExecutionPlan> executionPlan = generatePartitionExecutionPlan(tracker);
-        PartitionExecutionPlan partition = executionPlan.stream()
+        PartitionExecutionPlan planItem = generatePartitionExecutionPlan(tracker).stream()
                 .filter(p -> p.getPartitionNumber() == nextPartitionIndex)
                 .findFirst()
                 .orElse(null);
 
-        int allocatedCapital = partition != null ? (int) Math.round(partition.getAllocatedAmount()) : 0;
+        int allocatedCapital = planItem != null ? (int) Math.round(planItem.getAllocatedAmount()) : 0;
         int expectedPartitionDays = resolveExpectedLength(tracker.getPartitionDays(), pastPartitions);
 
         return new PartitionPlan(nextPartitionIndex, expectedPartitionDays, allocatedCapital);
-
     }
 
     public List<PartitionExecutionPlan> generatePartitionExecutionPlan(DsipTracker tracker) {
@@ -46,8 +44,7 @@ public class PartitionAllocationPolicy {
 
         int[] partitionsPerPhase = new int[phaseCount];
         for (int idx = 0; idx < totalPartitions; idx++) {
-            int phaseIdx = idx % phaseCount;
-            partitionsPerPhase[phaseIdx]++;
+            partitionsPerPhase[idx % phaseCount]++;
         }
 
         List<Double> phaseWeights = dsipProperties.getLoadFactor()
@@ -62,16 +59,27 @@ public class PartitionAllocationPolicy {
         double totalCapital = tracker.getTotalCapitalPlanned() != null ? tracker.getTotalCapitalPlanned() : 0.0;
 
         List<PartitionExecutionPlan> plan = new ArrayList<>();
+        double totalAllocated = 0.0;
+
         for (int partitionNumber = 1; partitionNumber <= totalPartitions; partitionNumber++) {
             int phaseIdx = (partitionNumber - 1) % phaseCount;
             int phaseNumber = phaseIdx + 1;
-            int slotsInPhase = partitionsPerPhase[phaseIdx] > 0 ? partitionsPerPhase[phaseIdx] : 1;
+            int slotsInPhase = Math.max(1, partitionsPerPhase[phaseIdx]);
 
             double weight = phaseIdx < phaseWeights.size() ? phaseWeights.get(phaseIdx) : 1.0 / phaseCount;
-            double allocatedAmount = (totalCapital * weight) / slotsInPhase;
+            double amountExact = (totalCapital * weight) / slotsInPhase;
+            double amountRounded = financialCalculator.round(amountExact, 2);
 
-            plan.add(new PartitionExecutionPlan(partitionNumber, phaseNumber,
-                    financialCalculator.round(allocatedAmount, 2)));
+            plan.add(new PartitionExecutionPlan(partitionNumber, phaseNumber, amountRounded));
+            totalAllocated += amountRounded;
+        }
+
+        // Fix any rounding drift so sum of allocated amounts is exactly totalCapital (up to 2 decimals)
+        double targetTotal = financialCalculator.round(totalCapital, 2);
+        double drift = financialCalculator.round(targetTotal - totalAllocated, 2);
+        if (Math.abs(drift) >= 0.01 && !plan.isEmpty()) {
+            PartitionExecutionPlan last = plan.get(plan.size() - 1);
+            last.setAllocatedAmount(financialCalculator.round(last.getAllocatedAmount() + drift, 2));
         }
 
         return plan;

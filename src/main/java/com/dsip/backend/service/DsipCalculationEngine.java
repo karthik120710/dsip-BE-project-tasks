@@ -17,6 +17,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -597,44 +598,56 @@ public class DsipCalculationEngine {
      * @return allocated capital for this partition
      */
     public double calculatePartitionAllocation(DsipTracker tracker, int partitionIndex) {
-        int convictionDays = (int) (tracker.getConvictionPeriodYears() * dsipProperties.getTradingDaysPerYear());
-        int partitionCycleLength = tracker.getPartitionDays();
+        if (partitionIndex < 1) {
+            throw new IllegalArgumentException("partitionIndex must be >= 1");
+        }
 
-        if (partitionCycleLength == 0) {
+        int totalPartitions = calculateTotalPartitions(tracker);
+        int phaseCount = Math.max(1, dsipProperties.getPhaseCount());
+
+        if (totalPartitions <= 0) {
             return 0.0;
         }
 
-        int expectedPartitions = convictionDays / partitionCycleLength;
-        if (expectedPartitions == 0) {
-            expectedPartitions = 1;
+        partitionIndex = Math.min(partitionIndex, totalPartitions);
+
+        int[] partitionsInPhase = new int[phaseCount];
+        for (int i = 0; i < totalPartitions; i++) {
+            partitionsInPhase[i % phaseCount]++;
         }
 
-        int partitionsPerPhase = Math.max(1, expectedPartitions / dsipProperties.getPhaseCount());
+        int phaseIndex = (partitionIndex - 1) % phaseCount;
+        int slotsInPhase = Math.max(1, partitionsInPhase[phaseIndex]);
 
-        // Determine current phase (0-indexed)
-        int phaseIndex = (partitionIndex - 1) / partitionsPerPhase;
-        phaseIndex = Math.min(phaseIndex, dsipProperties.getPhaseCount() - 1);
-
-        // Get phase weight from load factor
         DeploymentStyle style = DeploymentStyle.fromValue(tracker.getDeploymentStyle());
         List<Double> phaseWeights = dsipProperties.getLoadFactor().getByDeploymentStyle(style);
-        double phaseWeight = phaseWeights.get(phaseIndex);
-
-        // Calculate remaining partitions in this phase
-        int partitionIndexInPhase = (partitionIndex - 1) % partitionsPerPhase;
-        int remainingInPhase = partitionsPerPhase - partitionIndexInPhase;
-
-        // Calculate remaining capital
-        double totalDeployed = tracker.getTotalCapitalInvestedSoFar() != null
-                ? tracker.getTotalCapitalInvestedSoFar()
-                : 0.0;
-        double remainingCapital = tracker.getTotalCapitalPlanned() - totalDeployed;
-
-        if (remainingCapital <= 0 || remainingInPhase <= 0) {
-            return 0.0;
+        if (phaseWeights == null || phaseWeights.size() <= phaseIndex) {
+            phaseWeights = new ArrayList<>();
+            for (int i = 0; i < phaseCount; i++) {
+                phaseWeights.add(1.0 / phaseCount);
+            }
         }
 
-        return (remainingCapital * phaseWeight) / remainingInPhase;
+        double phaseWeight = phaseWeights.get(phaseIndex);
+        double totalCapital = tracker.getTotalCapitalPlanned() != null ? tracker.getTotalCapitalPlanned() : 0.0;
+
+        return financialCalculator.round((totalCapital * phaseWeight) / slotsInPhase, 2);
+    }
+
+    private int calculateTotalPartitions(DsipTracker tracker) {
+        if (tracker.getConvictionPeriodYears() == null || tracker.getConvictionPeriodYears() <= 0.0
+                || tracker.getPartitionDays() == null || tracker.getPartitionDays() <= 0) {
+            return 1;
+        }
+
+        double convictionMonths = tracker.getConvictionPeriodYears() * 12.0;
+        double partitionLengthMonths = (tracker.getPartitionDays() / (double) dsipProperties.getTradingDaysPerYear()) * 12.0;
+
+        if (partitionLengthMonths <= 0.0) {
+            return 1;
+        }
+
+        return (int) Math.max(1, Math.round(convictionMonths / partitionLengthMonths));
     }
 
     // ========== GROWTH DAY EVALUATION ==========
