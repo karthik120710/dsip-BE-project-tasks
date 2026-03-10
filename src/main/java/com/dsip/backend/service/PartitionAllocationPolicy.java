@@ -3,10 +3,12 @@ package com.dsip.backend.service;
 import com.dsip.backend.config.DsipProperties;
 import com.dsip.backend.entity.DsipTracker;
 import com.dsip.backend.enums.DeploymentStyle;
+import com.dsip.backend.model.PartitionExecutionPlan;
 import com.dsip.backend.model.PartitionPlan;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import com.dsip.backend.entity.DsipPartition;
@@ -25,13 +27,72 @@ public class PartitionAllocationPolicy {
 
     public PartitionPlan createPlan(DsipTracker tracker, int nextPartitionIndex, List<DsipPartition> pastPartitions) {
 
-        double phaseWeight = resolvePhaseWeight(tracker, pastPartitions);
-        int totalPartitions = computeTotalPartitions(tracker, pastPartitions);
-        int allocatedCapital = computeAllocatedCapital(tracker, totalPartitions, phaseWeight);
+        List<PartitionExecutionPlan> executionPlan = generatePartitionExecutionPlan(tracker);
+        PartitionExecutionPlan partition = executionPlan.stream()
+                .filter(p -> p.getPartitionNumber() == nextPartitionIndex)
+                .findFirst()
+                .orElse(null);
+
+        int allocatedCapital = partition != null ? (int) Math.round(partition.getAllocatedAmount()) : 0;
         int expectedPartitionDays = resolveExpectedLength(tracker.getPartitionDays(), pastPartitions);
 
         return new PartitionPlan(nextPartitionIndex, expectedPartitionDays, allocatedCapital);
 
+    }
+
+    public List<PartitionExecutionPlan> generatePartitionExecutionPlan(DsipTracker tracker) {
+        int totalPartitions = calculateTotalPartitions(tracker);
+        int phaseCount = Math.max(1, dsipProperties.getPhaseCount());
+
+        int[] partitionsPerPhase = new int[phaseCount];
+        for (int idx = 0; idx < totalPartitions; idx++) {
+            int phaseIdx = idx % phaseCount;
+            partitionsPerPhase[phaseIdx]++;
+        }
+
+        List<Double> phaseWeights = dsipProperties.getLoadFactor()
+                .getByDeploymentStyle(DeploymentStyle.fromValue(tracker.getDeploymentStyle()));
+        if (phaseWeights == null || phaseWeights.size() < phaseCount) {
+            phaseWeights = new ArrayList<>();
+            for (int i = 0; i < phaseCount; i++) {
+                phaseWeights.add(1.0 / phaseCount);
+            }
+        }
+
+        double totalCapital = tracker.getTotalCapitalPlanned() != null ? tracker.getTotalCapitalPlanned() : 0.0;
+
+        List<PartitionExecutionPlan> plan = new ArrayList<>();
+        for (int partitionNumber = 1; partitionNumber <= totalPartitions; partitionNumber++) {
+            int phaseIdx = (partitionNumber - 1) % phaseCount;
+            int phaseNumber = phaseIdx + 1;
+            int slotsInPhase = partitionsPerPhase[phaseIdx] > 0 ? partitionsPerPhase[phaseIdx] : 1;
+
+            double weight = phaseIdx < phaseWeights.size() ? phaseWeights.get(phaseIdx) : 1.0 / phaseCount;
+            double allocatedAmount = (totalCapital * weight) / slotsInPhase;
+
+            plan.add(new PartitionExecutionPlan(partitionNumber, phaseNumber,
+                    financialCalculator.round(allocatedAmount, 2)));
+        }
+
+        return plan;
+    }
+
+    private int calculateTotalPartitions(DsipTracker tracker) {
+        if (tracker.getConvictionPeriodYears() == null || tracker.getConvictionPeriodYears() <= 0.0
+                || tracker.getPartitionDays() == null || tracker.getPartitionDays() <= 0) {
+            return 1;
+        }
+
+        double convictionMonths = tracker.getConvictionPeriodYears() * 12.0;
+        double partitionLengthMonths = (tracker.getPartitionDays() / (double) dsipProperties.getTradingDaysPerYear())
+                * 12.0;
+
+        if (partitionLengthMonths <= 0.0) {
+            return 1;
+        }
+
+        int partitionCount = (int) Math.max(1, Math.round(convictionMonths / partitionLengthMonths));
+        return partitionCount;
     }
 
     private int resolveExpectedLength(int defaultPartitionDays, List<DsipPartition> pastPartitions) {
