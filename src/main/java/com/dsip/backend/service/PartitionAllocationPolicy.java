@@ -27,15 +27,56 @@ public class PartitionAllocationPolicy {
 
     public PartitionPlan createPlan(DsipTracker tracker, int nextPartitionIndex, List<DsipPartition> pastPartitions) {
 
-        PartitionExecutionPlan planItem = generatePartitionExecutionPlan(tracker).stream()
+        List<PartitionExecutionPlan> fullPlan = generatePartitionExecutionPlan(tracker);
+        PartitionExecutionPlan planItem = fullPlan.stream()
                 .filter(p -> p.getPartitionNumber() == nextPartitionIndex)
                 .findFirst()
                 .orElse(null);
 
-        int allocatedCapital = planItem != null ? (int) Math.round(planItem.getAllocatedAmount()) : 0;
         int expectedPartitionDays = resolveExpectedLength(tracker.getPartitionDays(), pastPartitions);
+        double allocatedCapital = calculateDynamicAllocation(tracker, nextPartitionIndex, fullPlan, planItem);
 
         return new PartitionPlan(nextPartitionIndex, expectedPartitionDays, allocatedCapital);
+    }
+
+    private double calculateDynamicAllocation(DsipTracker tracker, int nextPartitionIndex,
+                                              List<PartitionExecutionPlan> fullPlan,
+                                              PartitionExecutionPlan planItem) {
+        if (planItem == null || fullPlan.isEmpty() || tracker == null || tracker.getTotalCapitalPlanned() == null) {
+            return 0.0;
+        }
+
+        double totalCapital = tracker.getTotalCapitalPlanned();
+        double investedSoFar = tracker.getTotalCapitalInvestedSoFar() != null ? tracker.getTotalCapitalInvestedSoFar() : 0.0;
+        double remainingCapital = Math.max(0.0, totalCapital - investedSoFar);
+
+        if (remainingCapital <= 0.0) {
+            return 0.0;
+        }
+
+        int totalPartitions = fullPlan.size();
+        if (nextPartitionIndex > totalPartitions) {
+            return 0.0;
+        }
+
+        // Calculate sum of planned amount for remaining partitions from nextPartition onwards.
+        double remainingPlanned = fullPlan.stream()
+                .filter(p -> p.getPartitionNumber() >= nextPartitionIndex)
+                .mapToDouble(PartitionExecutionPlan::getAllocatedAmount)
+                .sum();
+
+        if (remainingPlanned <= 0.0) {
+            // fallback to hard plan value for this partition
+            return financialCalculator.round(planItem.getAllocatedAmount(), 2);
+        }
+
+        // For the last partition, consume all remaining capital exactly (prevents rounding drift).
+        if (nextPartitionIndex == totalPartitions) {
+            return financialCalculator.round(remainingCapital, 2);
+        }
+
+        double scaled = remainingCapital * (planItem.getAllocatedAmount() / remainingPlanned);
+        return financialCalculator.round(scaled, 2);
     }
 
     private void validateTrackerForPartitionPlan(DsipTracker tracker) {

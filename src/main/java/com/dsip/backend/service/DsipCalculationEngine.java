@@ -654,7 +654,50 @@ public class DsipCalculationEngine {
         double phaseWeight = phaseWeights.get(phaseIndex);
         double totalCapital = tracker.getTotalCapitalPlanned() != null ? tracker.getTotalCapitalPlanned() : 0.0;
 
-        return financialCalculator.round((totalCapital * phaseWeight) / slotsInPhase, 2);
+        double investedSoFar = tracker.getTotalCapitalInvestedSoFar() != null ? tracker.getTotalCapitalInvestedSoFar() : 0.0;
+        double remainingCapital = Math.max(0.0, totalCapital - investedSoFar);
+
+        // Build partition weights using the same logic as policy to avoid mismatch.
+        List<Double> plannedAllocations = new ArrayList<>();
+        for (int i = 1; i <= totalPartitions; i++) {
+            int pIdx = (i - 1) % phaseCount;
+            int pSlots = Math.max(1, partitionsInPhase[pIdx]);
+            double pWeight = pIdx < phaseWeights.size() ? phaseWeights.get(pIdx) : 1.0 / phaseCount;
+            plannedAllocations.add(financialCalculator.round((totalCapital * pWeight) / pSlots, 2));
+        }
+
+        // Rounding correction to exactly allocate totalCapital
+        double plannedTotal = plannedAllocations.stream().mapToDouble(Double::doubleValue).sum();
+        double drift = financialCalculator.round(totalCapital - plannedTotal, 2);
+        if (!plannedAllocations.isEmpty()) {
+            int lastIdx = plannedAllocations.size() - 1;
+            plannedAllocations.set(lastIdx,
+                    financialCalculator.round(plannedAllocations.get(lastIdx) + drift, 2));
+        }
+
+        double currentPlanned = plannedAllocations.get(Math.min(partitionIndex, plannedAllocations.size()) - 1);
+
+        if (remainingCapital <= 0.0) {
+            return 0.0;
+        }
+
+        // Last partition should use full remaining capital to avoid trailing residue.
+        if (partitionIndex >= totalPartitions) {
+            return financialCalculator.round(remainingCapital, 2);
+        }
+
+        double remainingPlannedSum = 0.0;
+        for (int i = partitionIndex - 1; i < plannedAllocations.size(); i++) {
+            remainingPlannedSum += plannedAllocations.get(i);
+        }
+
+        if (remainingPlannedSum <= 0.0) {
+            return financialCalculator.round(currentPlanned, 2);
+        }
+
+        // Scale this partition allocation to remaining capital while preserving phase ratios
+        double scaled = remainingCapital * (currentPlanned / remainingPlannedSum);
+        return financialCalculator.round(scaled, 2);
     }
 
     private int calculateTotalPartitions(DsipTracker tracker) {

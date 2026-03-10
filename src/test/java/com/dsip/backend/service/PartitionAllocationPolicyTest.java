@@ -60,6 +60,29 @@ class PartitionAllocationPolicyTest {
     }
 
     @Test
+    void testCreatePlanScalesWithRemainingCapitalAfterPartialPhase1() {
+        DsipProperties dsipProperties = new DsipProperties();
+        FinancialCalculator financialCalculator = new FinancialCalculator(dsipProperties);
+        PartitionAllocationPolicy policy = new PartitionAllocationPolicy(dsipProperties, financialCalculator);
+
+        DsipTracker tracker = DsipTracker.builder()
+                .convictionPeriodYears(0.25) // 3 months
+                .partitionDays(21) // monthly
+                .totalCapitalPlanned(100.0)
+                .deploymentStyle(3) // AGGRESSIVE
+                .totalCapitalInvestedSoFar(30.0)
+                .build();
+
+        // Next partition is #2 (phase 2) for as-if first phase ended after 30 deployed
+        PartitionPlan next = policy.createPlan(tracker, 2, List.of());
+
+        // full aggressive 3-month plan would be approx [51,24,25] (after drift correction)
+        // remaining capital = 70, remaining planned sum = 49, so this partition gets ~34.29
+        assertEquals(2, next.getPartitionIndex());
+        assertEquals(34.29, next.getAllocatedCapital(), 0.01);
+    }
+
+    @Test
     void testValidationFailsForBadInputs() {
         DsipProperties dsipProperties = new DsipProperties();
         FinancialCalculator financialCalculator = new FinancialCalculator(dsipProperties);
