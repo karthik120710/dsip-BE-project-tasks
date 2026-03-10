@@ -57,19 +57,26 @@ public class DsipTrackerDto {
     private Double initialSharesHeld = 0.0;
 
     // Internal field (stored in DB as years)
-    @JsonIgnore
+    @JsonProperty("conviction_period_years")
     private Double convictionPeriodYears;
 
     // API field (exposed as months)
     @JsonProperty("conviction_period_months")
-    @NotNull(message = "Conviction period months is required")
-    @Min(value = 1, message = "Conviction period months must be at least 1")
     private Integer convictionPeriodMonths;
 
     // Conversion: months → years when setting
     public void setConvictionPeriodMonths(Integer months) {
         this.convictionPeriodMonths = months;
-        this.convictionPeriodYears = months != null ? months / 12.0 : null;
+        if (months != null) {
+            this.convictionPeriodYears = months / 12.0;
+        }
+    }
+
+    public void setConvictionPeriodYears(Double years) {
+        this.convictionPeriodYears = years;
+        if (years != null) {
+            this.convictionPeriodMonths = (int) Math.round(years * 12);
+        }
     }
 
     // Conversion: years → months when getting (for response)
@@ -91,8 +98,6 @@ public class DsipTrackerDto {
 
     // API field (exposed as months)
     @JsonProperty("partition_months")
-    @NotNull(message = "Partition months is required")
-    @Min(value = 1, message = "Partition months must be at least 1")
     private Integer partitionMonths;
 
     // Conversion: months to days when setting partitionMonths

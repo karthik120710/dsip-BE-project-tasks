@@ -41,6 +41,7 @@ public class DsipTrackerService {
 
         @Transactional
         public DsipTrackerDto createTracker(UUID userId, DsipTrackerDto dto) {
+                validateTrackerPayload(dto);
                 // Look up stock by symbol
                 Stock stock = stockMapper.findByStockSymbol(dto.getStockSymbol())
                                 .orElseThrow(
@@ -93,6 +94,42 @@ public class DsipTrackerService {
                 dsipTrackerMapper.insertPartition(partition);
 
                 return DsipTrackerDto.fromEntity(tracker, stock.getStockSymbol());
+        }
+
+        private void validateTrackerPayload(DsipTrackerDto dto) {
+                if (dto == null) {
+                        throw new IllegalArgumentException("Request body is required");
+                }
+
+                if (dto.getTotalCapitalPlanned() == null || dto.getTotalCapitalPlanned() <= 0) {
+                        throw new IllegalArgumentException("Total capital planned must be greater than 0");
+                }
+
+                Integer periodMonths = dto.getConvictionPeriodMonths();
+                Double periodYears = dto.getConvictionPeriodYears();
+                if ((periodMonths == null || periodMonths <= 0) && (periodYears == null || periodYears <= 0)) {
+                        throw new IllegalArgumentException("Conviction period (months or years) must be greater than 0");
+                }
+
+                if (periodMonths != null && periodMonths > 0) {
+                        dto.setConvictionPeriodMonths(periodMonths);
+                } else if (periodYears != null && periodYears > 0) {
+                        dto.setConvictionPeriodYears(periodYears);
+                }
+
+                Integer partitionMonths = dto.getPartitionMonths();
+                if (partitionMonths == null || partitionMonths <= 0) {
+                        throw new IllegalArgumentException("Partition months must be greater than 0");
+                }
+
+                if (dto.getConvictionPeriodMonths() != null && dto.getPartitionMonths() != null
+                        && dto.getPartitionMonths() > dto.getConvictionPeriodMonths()) {
+                        throw new IllegalArgumentException("Partition length cannot exceed conviction period");
+                }
+
+                if (dto.getDeploymentStyle() == null) {
+                        throw new IllegalArgumentException("Deployment style is required");
+                }
         }
 
         /**
