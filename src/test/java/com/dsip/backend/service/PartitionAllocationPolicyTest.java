@@ -120,4 +120,29 @@ class PartitionAllocationPolicyTest {
                 () -> policy.generatePartitionExecutionPlan(invalidStrategy));
         assertEquals("Strategy must be valid", ex5.getMessage());
     }
+
+    @Test
+    void testOneMonthAggressiveRecommendationPlan() {
+        DsipProperties dsipProperties = new DsipProperties();
+        FinancialCalculator financialCalculator = new FinancialCalculator(dsipProperties);
+        PartitionAllocationPolicy policy = new PartitionAllocationPolicy(dsipProperties, financialCalculator);
+
+        DsipTracker tracker = DsipTracker.builder()
+                .convictionPeriodYears(1.0 / 12.0)
+                .partitionDays(21)
+                .totalCapitalPlanned(100.0)
+                .deploymentStyle(3) // AGGRESSIVE
+                .build();
+
+        List<PartitionExecutionPlan> plan = policy.generatePartitionExecutionPlan(tracker);
+
+        assertEquals(1, plan.size(), "Only one partition expected for 1-month conviction and 1-month partition length");
+
+        PartitionExecutionPlan p0 = plan.get(0);
+        assertEquals(1, p0.getPartitionNumber());
+        assertEquals(1, p0.getPhaseNumber(), "First partition should be phase 1 in a cycle");
+
+        // AGGRESSIVE phase weights are [0.51,0.24,0.24], but with a single partition we correct drift to full capital
+        assertEquals(100.0, p0.getAllocatedAmount(), 0.001);
+    }
 }
